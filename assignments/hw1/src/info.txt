@@ -1,0 +1,30 @@
+STUDENTS
+Name: ________________________________
+Student Number: ______________________
+
+Name: ________________________________
+Student Number: ______________________
+
+Name: ________________________________
+Student Number: ______________________
+
+Name: ________________________________
+Student Number: ______________________
+
+ASSIGNMENT SOLUTIONS
+
+Task 4:
+ 
+   a) Speedup: 
+       Original Run-Time: _______________
+       Run-Time of Enhanced Code: ____________
+       Speedup: ____________ (percent)
+
+   b) Accuracy:
+       Metric of Enhanced Code: _______________
+
+   Remember to include your code in the task4 subdirectory.
+   If you want to make any other comments for Task 4, that
+   you want us to see when marking, write them here:
+
+
