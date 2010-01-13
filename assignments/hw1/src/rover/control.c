@@ -6,7 +6,7 @@
  *  University of British Columbia, ECE
  *	Steve Wilton & Sathish Gopalakrishnan
  *  
- *	Modified by: _________________________________________
+ *	Modified by: Jason Poon
  *
  *  This file is where your code will go.
  *
@@ -17,6 +17,28 @@
 #include "rover.h"
 #include "ext.h"
 
+#define light_dash() \
+    ({turn_on_light();\
+      sleep(2);\
+      turn_off_light();\
+      sleep(1);})
+#define light_dot() \
+    ({ turn_on_light();\
+       sleep(1);\
+       turn_off_light();\
+       sleep(1);})
+typedef struct sensor_value_t {
+    pthread_mutex_t mutex;
+    BOOL sensorValue;
+} sensor_value_t;
+
+sensor_value_t is_alive = {
+    PTHREAD_MUTEX_INITIALIZER,
+    TRUE 
+};
+
+pthread_t create_thread(void *);
+void monitor_sensor(sensor_value_t, BOOL (*) ());
 
 void turn_on_light()
 {
@@ -102,7 +124,37 @@ BOOL alive_sensor()
 
 void *flash_light_thread()
 {
-   /* Write some code here */
+     BOOL isAlive;
+
+     while(1) {
+        pthread_mutex_lock(&is_alive.mutex);
+        isAlive = is_alive.sensorValue;
+        pthread_mutex_unlock(&is_alive.mutex);
+
+        if (isAlive) {
+            light_dot();
+            light_dot();
+            light_dot();
+            light_dot();
+            sleep(1);
+            light_dot();
+            sleep(1);
+            light_dot();
+            light_dash();
+            light_dot();
+            light_dot();
+            sleep(1);
+            light_dot();
+            light_dash();
+            light_dash();
+            light_dot();
+            sleep(1);
+        } else {
+            break;
+        }
+
+        sleep(1);
+    }
 }
  
 /*--------------------------------------------------------------*/
@@ -119,7 +171,26 @@ void *flash_light_thread()
  
 void *movement_thread()
 {
-   /* Write some code here */
+    BOOL isAlive;
+
+    while(1) {
+        pthread_mutex_lock(&is_alive.mutex);
+        isAlive = is_alive.sensorValue;
+        pthread_mutex_unlock(&is_alive.mutex);
+
+        if (isAlive) {
+            if (backward_sensor()) {
+                go_forward();
+            } 
+            if (forward_sensor()) {
+                go_backward();
+            }
+        } else {
+            break;
+        }
+
+        sleep(1);
+    }
 }
 
 
@@ -138,7 +209,21 @@ void *movement_thread()
  
 void *camera_thread()
 {
-   /* Write some code here */
+    BOOL isAlive;
+
+    while(1) {
+        pthread_mutex_lock(&is_alive.mutex);
+        isAlive = is_alive.sensorValue;
+        pthread_mutex_unlock(&is_alive.mutex);
+
+        if (isAlive) {
+            if(life_sensor()) take_picture();
+        } else {
+            break;
+        }
+
+        sleep(1);
+    }
 }
 
 
@@ -155,6 +240,44 @@ void *camera_thread()
 
 void your_code()
 {
-   /* Write some code here */
+    create_thread(camera_thread);
+    create_thread(movement_thread);
+    create_thread(flash_light_thread);
+
+    while(1) {
+        monitor_sensor(is_alive, &alive_sensor);
+    }
+
 }
 
+pthread_t create_thread(void *func)
+{
+    pthread_t thread_id;
+    int status;
+    
+    status = pthread_create(&thread_id,
+                           NULL,
+                           func,
+                           NULL);
+    if (status != 0) {
+        printf("Error creating thread: status = %d\n",status);
+        exit(0);
+    }
+    
+    status = pthread_detach(thread_id);
+    if (status != 0) {
+        printf("Error detaching thread: status = %d\n",status);
+        exit(0);
+    }
+
+    return thread_id;
+}
+
+void monitor_sensor(sensor_value_t sensor, BOOL (*sensor_func) ()) {
+    pthread_mutex_lock(&sensor.mutex);
+    is_alive.sensorValue= (*sensor_func)();
+    pthread_mutex_unlock(&is_alive.mutex);
+
+    sleep(1);
+ 
+}
