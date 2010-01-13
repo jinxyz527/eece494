@@ -27,3 +27,7 @@ control.o: control.c $(H)
 
 main.o: main.c $(H)
 	$(CC) -c $(FLAGS) main.c
+
+clean:
+	rm -rf *o ${EXE}
+
