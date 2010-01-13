@@ -32,9 +32,13 @@ main()
    set_up_graphics();
    run_rover_thread();
    run_graphics_thread();
-   your_main_loop();
+   your_code();
    end_graphics();
 
    printf("The UBC Rover has been destroyed.\n");
    printf("Please insert another $820,000,000 into the coin slot and try again.\n");
+}
+
+your_main_loop() {
+    sleep(20);
 }
