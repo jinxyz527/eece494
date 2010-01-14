@@ -1,27 +1,18 @@
 STUDENTS
-Name: ________________________________
-Student Number: ______________________
-
-Name: ________________________________
-Student Number: ______________________
-
-Name: ________________________________
-Student Number: ______________________
-
-Name: ________________________________
-Student Number: ______________________
+Name: Jason Poon
+Student Number: 21736053
 
 ASSIGNMENT SOLUTIONS
 
 Task 4:
  
    a) Speedup: 
-       Original Run-Time: _______________
-       Run-Time of Enhanced Code: ____________
-       Speedup: ____________ (percent)
+       Original Run-Time: 7.156s
+       Run-Time of Enhanced Code: 0.624s
+       Speedup: 11.468 (percent)
 
    b) Accuracy:
-       Metric of Enhanced Code: _______________
+       Metric of Enhanced Code: 7.61799x10^(-6)
 
    Remember to include your code in the task4 subdirectory.
    If you want to make any other comments for Task 4, that
