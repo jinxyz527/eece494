@@ -125,6 +125,10 @@ BOOL alive_sensor()
 void *flash_light_thread()
 {
      BOOL isAlive;
+     int pos = 0;
+     char msg[] = ".... . .-.. .--.";
+
+     turn_off_light();
 
      while(1) {
         pthread_mutex_lock(&is_alive.mutex);
@@ -132,28 +136,27 @@ void *flash_light_thread()
         pthread_mutex_unlock(&is_alive.mutex);
 
         if (isAlive) {
-            light_dot();
-            light_dot();
-            light_dot();
-            light_dot();
+            switch( msg[pos] ) {
+                case '.':
+                    turn_on_light();
+                    sleep(1);
+                    turn_off_light();
+                    break;
+                case '-':
+                    turn_on_light();
+                    sleep(2);
+                    turn_off_light();
+                    break;
+                case ' ':
+                    break;
+                case '\0':
+                    break;
+            }
             sleep(1);
-            light_dot();
-            sleep(1);
-            light_dot();
-            light_dash();
-            light_dot();
-            light_dot();
-            sleep(1);
-            light_dot();
-            light_dash();
-            light_dash();
-            light_dot();
-            sleep(1);
+            pos = (pos+1) % sizeof(msg)/sizeof(msg[0]);
         } else {
             break;
         }
-
-        sleep(1);
     }
 }
  
@@ -279,5 +282,4 @@ void monitor_sensor(sensor_value_t sensor, BOOL (*sensor_func) ()) {
     pthread_mutex_unlock(&is_alive.mutex);
 
     sleep(1);
- 
 }
