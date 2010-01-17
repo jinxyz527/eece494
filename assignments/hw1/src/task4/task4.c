@@ -133,25 +133,19 @@ main()
    int u,v,it;
    float accuracy = 0;
 
-   /* Run the algorithm 10,000 times to make timing measurements easier */
-
    for(it=0;it<10000;it++) {
-
-      /* Step through all 64 combinations of u and v.  This will calculate
-         64 numbers, and store the results in array f.  The FDCT routine
-         is called to calculate each number.  */
 
       for(u=0;u<8;u++) {
          for(v=0;v<8;v++) {
+            /* Calculate both FDCT using both the table and the math functions */
             f[u][v] = FDCT(u,v);
             g[u][v] = FDCT_baseline(u,v);
 	 }
       }
    }
 
-   /* Now print out the results.  If you want to really precise with
-      your timing measurements, you could temporarily remove this part. */
 
+   /* Calculate loss in accuracy in using the look-up table */
    for(u=0;u<8;u++) {
       for(v=0;v<8;v++) {
          printf("%f ",f[u][v]);

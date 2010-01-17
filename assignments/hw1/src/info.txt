@@ -9,13 +9,13 @@ Task 4:
    a) Speedup: 
        Original Run-Time: 7.156s
        Run-Time of Enhanced Code: 0.624s
-       Speedup: 11.468 (percent)
+       Speedup: 1146.79 (percent)
 
    b) Accuracy:
-       Metric of Enhanced Code: 7.61799x10^(-6)
+       Metric of Enhanced Code: 7.6179885582x10^(-6)
 
    Remember to include your code in the task4 subdirectory.
    If you want to make any other comments for Task 4, that
    you want us to see when marking, write them here:
 
-
+    Modifications were made directly to task4.c such that it would calculate the FDCT through the actual calculations and the look-up table. The accuracy was then calculated by comparing the values obtained through the respective methods.
