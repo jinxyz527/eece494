@@ -8,9 +8,9 @@ LIB = -lpthread -lrt
 
 #FLAGS = -Wall -Wpointer-arith -Wcast-qual -Wstrict-prototypes -O -D__USE_FIXED_PROTOTYPES__ -ansi -pedantic -Wmissing-prototypes -Wshadow -Wcast-align -D_POSIX_SOURCE
 #FLAGS = -g
-FLAGS = -O2
+FLAGS = -O2 -g
 
-EXE = task2
+EXE = task3b
 OBJ = main.o cam.o misc.o
 SRC = main.c cam.c misc.c
 H = defs.h ext.h cam.h misc.h
