@@ -102,14 +102,15 @@ int cam_lookup_address(ip_address_t *address)
 void cam_free()
 {
     int i;
-    hashnode_t *node, *next;
+    hashnode_t *pNode, *pNext;
 
     for (i = 0; i < pHashTbl->size; i++) {
-        node = pHashTbl->nodes[i];
-        while( node ) {
-            next = node->pNext;
-            free(node);
-            node = next;
+        pNode = pHashTbl->nodes[i];
+        while (pNode) {
+            pNext = pNode->pNext;
+            free(pNode->address);
+            free(pNode);
+            pNode = pNext;
         }
     }
     free(pHashTbl->nodes);
