@@ -29,4 +29,4 @@ cam.o: cam.c $(H)
 	$(CC) -c $(FLAGS) cam.c 
 
 clean:
-	rm -r *.o task2
+	rm -r *.o $(EXE)
