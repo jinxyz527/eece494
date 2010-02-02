@@ -59,6 +59,5 @@ typedef struct ip_address_t {
 void ip_address_copy( ip_address_t *source_address_ptr,
                       ip_address_t *dest_address_ptr);
 
+void ip_address_print( ip_address_t *address_ptr);
 
-
-                     
