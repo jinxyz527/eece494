@@ -21,7 +21,7 @@ hashtable_t *pHashTbl;
 unsigned long crc(const void *key, const unsigned long len)
 {
     unsigned int i;
-    unsigned long hash;
+    register unsigned long hash;
     const unsigned char *k = key;
     for (hash=len, i=0; i<len; ++i)
         hash = (hash >> 8) ^ crcTable[(hash & 0xff) ^ k[i]];
