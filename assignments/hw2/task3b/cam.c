@@ -18,16 +18,17 @@
 
 hashtable_t *pHashTbl;
 
-unsigned long crc(const void *key, const unsigned long len)
+unsigned int SDBMHash(const void *key, unsigned int len)
 {
-    unsigned int i;
-    register unsigned long hash;
-    const unsigned char *k = key;
-    for (hash=len, i=0; i<len; ++i)
-        hash = (hash >> 8) ^ crcTable[(hash & 0xff) ^ k[i]];
+    unsigned int hash = 0;
+    unsigned int i = 0;
+    const char *k = key;
+
+    for(i = 0; i < len; k++, i++)
+        hash = (*k) + (hash << 6) + (hash << 16) - hash;
+
     return hash;
 }
-
 
 void cam_init()
 {
@@ -43,7 +44,7 @@ void cam_init()
     }
 
     pHashTbl->size = HASH_TABLE_SIZE;
-    pHashTbl->hashFunc = crc;
+    pHashTbl->hashFunc = SDBMHash;
 }
 
 void cam_add_entry(ip_address_t *address, int port)
