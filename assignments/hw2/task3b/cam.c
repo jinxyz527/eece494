@@ -18,16 +18,15 @@
 
 hashtable_t *pHashTbl;
 
-unsigned int Hash(ip_address_t *key, unsigned int maxSize)
+unsigned int Hash(ip_address_t *key)
 {
-    unsigned long hash = 0;
+    unsigned long hash = key->n4;
 
-    hash += key->n4;
     hash += key->n3 * 1000;
     hash += key->n2 * 1000000;
     hash += key->n1 * 157;
 
-    return hash % maxSize;
+    return hash % HASH_TABLE_SIZE;
 }
 
 void cam_init()
@@ -43,7 +42,6 @@ void cam_init()
         exit(1);
     }
 
-    pHashTbl->size = HASH_TABLE_SIZE;
     pHashTbl->hashFunc = Hash;
 }
 
@@ -52,7 +50,7 @@ void cam_add_entry(ip_address_t *address, int port)
     unsigned long index;
     hashnode_t *pNode, *newNode;
 
-    index = pHashTbl->hashFunc(address, pHashTbl->size);
+    index = pHashTbl->hashFunc(address);
     pNode = pHashTbl->nodes[index];
     while (pNode) {
         if (!memcmp(pNode->address, address, sizeof(ip_address_t))) {
@@ -88,7 +86,7 @@ int cam_lookup_address(ip_address_t *address)
     unsigned long index;
     hashnode_t *pNode;
 
-    index = pHashTbl->hashFunc(address, pHashTbl->size);
+    index = pHashTbl->hashFunc(address);
     pNode = pHashTbl->nodes[index];
     while (pNode) {
         if (!memcmp(pNode->address, address, sizeof(ip_address_t))) {
