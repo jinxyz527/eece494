@@ -23,54 +23,47 @@ bool test3(void);
 
 main()
 {
-		struct timespec start_time;  /* Clock value just before test1 */
+    struct timespec start_time;  /* Clock value just before test1 */
     struct timespec end_time_1;  /* Clock value just after test1 & before test2 */
-		struct timespec end_time_2;  /* Clock value just after test2 & before test3 */   
-		struct timespec end_time_3;	 /* Clock value just after test2 */
-		long secs_diff_1, ns_diff_1, diff_1;   
+    struct timespec end_time_2;  /* Clock value just after test2 & before test3 */   
+    struct timespec end_time_3;	 /* Clock value just after test2 */
+    long secs_diff_1, ns_diff_1, diff_1;   
     long secs_diff_2, ns_diff_2, diff_2;   
-		long secs_diff_3, ns_diff_3, diff_3;  
-		long sum_1=0, avg_1=0 ;
-		long sum_2=0, avg_2=0 ;
-		long sum_3=0, avg_3=0 ;
+    long secs_diff_3, ns_diff_3, diff_3;  
+    long sum_1=0, avg_1=0 ;
+    long sum_2=0, avg_2=0 ;
+    long sum_3=0, avg_3=0 ;
 
-		int task_num;
     int i, j, n;
     double C, D, P;
     bool ans1, ans2, ans3;
     bool third = NULL;
-		
-		/* Get task sets from user*/
-    printf ("%s\n", "Entre the number of tasks");
+
+    /* Get task sets from user*/
+    printf ("%s\n", "Enter the number of tasks");
     scanf("%d" , &total_tasks);
 
-    for (i=0; i < total_tasks; i++ )
-		{
-		task_num = i+1;
-		printf ( "Entre parameters(execution time, reletive deadline, period) for task %i	\n" ,task_num);
+    for (i=0; i < total_tasks; i++ ) {
+		printf ( "Enter parameters(execution time, relative deadline, period) for task %i	\n" ,i);
 		scanf ("%lf %lf %lf" , &task[i][0],&task[i][1],&task[i][2]);
-		}
+    }
   
-		/*Conditions to perform each tests*/
-    for (j=0; j < total_tasks; j++)
-		{           
-			/*Compare relative deadline to the period*/
-			if( task[j][1] <= task[j][2]  )		
-			{
+    /*Conditions to perform each tests*/
+    for (j=0; j < total_tasks; j++) {           
+        /*Compare relative deadline to the period*/
+        if( task[j][1] <= task[j][2]  ) {
 			third=true;
-			}
-			else  {
-			third=false;
-			break;
-			}
-		}
+        } else {
+            third=false;
+        }
+    }
 
-		/*Measure time interval 1000 times for each of test*/
-		for (n=0; n < 1000 ; n++)
-		{
+    /*Measure time interval 1000 times for each of test*/
+    for (n=0; n < 1000 ; n++)
+    {
 
-		/* Record the start time for test1 */
-		clock_gettime(CLOCK_REALTIME, &start_time);   
+        /* Record the start time for test1 */
+        clock_gettime(CLOCK_REALTIME, &start_time);   
     
 		test1();  
 		
