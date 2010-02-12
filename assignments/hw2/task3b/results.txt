@@ -1,0 +1,32 @@
+Questions
+---------
+  i. A short description of how you implemented your data structure. Often a picture is worth a
+     thousand words. [5 points]
+ ii. The average time to perform a lookup. [2 points]
+iii. An estimated average throughput of a switch built using this routing table (in packets per
+     second), given that you have 40,000 entries in your routing table. [2 points]
+ iv. An estimate of the worst-case time to perform a lookup. In the first implementation described
+     above (the one that required too much storage), the time to perform a lookup is constant.
+     In the second implementation described above, the worst-case lookup will involve searching
+     through all n entries before finding the correct IP address (instead of n/2 entries, which is av-
+     erage case). I want you to estimate what is the worst case for your particular implementation,
+     and measure it. You will have to modify main.c to measure this (it might involve loading a
+     particular set of IP addresses into the routing table). In your report file, describe
+      A. an estimate of what the worst case would be in your implementation (in terms of the
+         number of entries in the table, n) [2 points], and
+      B. your measured estimate of this worst case [2 points].
+     Note that, although the worst-case time is important, it is the average-case time you should
+     be optimizing for in this network switch case.
+
+Answers
+-------
+i. The routing table is stored in a hash table. As the table is defined to be of size 40000, collisions may occur. Collisions are resolved via direct chaining.
+
+ii. The lookup time is based on the IP address in the routing table. The average time to perform a lookup ranges is in the vicinity of 0.172 microseconds.
+
+iii.
+
+iv. The worst-case lookup will occur when the hash function outputs the same index for all the keys (which in this case is the ip address). As a result of the direct chaining, a look-up could potential require traversing all 40 000 entries of a linked list to find a matching IP address. 
+    a) In O notation, the worst-case lookup would equate to O(n). 
+    b) In such a case, the lookup took 736.54 microseconds per lookup.
+

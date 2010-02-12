@@ -22,7 +22,7 @@ typedef struct hashnode_t {
 typedef struct hashtable_t {
     unsigned int size;
     hashnode_t **nodes;
-    unsigned int (*hashFunc)(const void*, unsigned int);
+    unsigned int (*hashFunc)(ip_address_t*);
 } hashtable_t;
 
 void cam_init();
