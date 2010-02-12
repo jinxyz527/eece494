@@ -18,4 +18,4 @@ Task 4:
    If you want to make any other comments for Task 4, that
    you want us to see when marking, write them here:
 
-    Modifications were made directly to task4.c such that it would calculate the FDCT through the actual calculations and the look-up table. The accuracy was then calculated by comparing the values obtained through the respective methods.
+Modifications were made directly to task4.c such that it would calculate the FDCT through the actual calculations and the look-up table. The accuracy was then calculated by comparing the values obtained through the respective methods.
