@@ -7,7 +7,7 @@ LIB = -lpthread -lrt
    
 #FLAGS = -Wall -Wpointer-arith -Wcast-qual -Wstrict-prototypes -O -D__USE_FIXED_PROTOTYPES__ -ansi -pedantic -Wmissing-prototypes -Wshadow -Wcast-align -D_POSIX_SOURCE
 #FLAGS = -g
-FLAGS = -O0
+FLAGS = -O0 -g
     
 EXE = task3
 OBJ = main.o cam.o harness.o switch.o misc.o
