@@ -3,7 +3,7 @@
  *
  *  Routing Table Routines for EECE 494, Assignment 2.
  *
- *  Created by _________, University of British Columbia
+ *  Created by Jason Poon, University of British Columbia
  *
  *  This is where you will put your routines to implement
  *  the routing table.  You should use the headers as
@@ -18,16 +18,16 @@
 
 hashtable_t *pHashTbl;
 
-unsigned long crc(const void *key, const unsigned long len)
+unsigned int Hash(ip_address_t *key)
 {
-    unsigned int i;
-    register unsigned long hash;
-    const unsigned char *k = key;
-    for (hash=len, i=0; i<len; ++i)
-        hash = (hash >> 8) ^ crcTable[(hash & 0xff) ^ k[i]];
-    return hash;
-}
+    unsigned long hash = key->n4;
 
+    hash += key->n3 * 1000;
+    hash += key->n2 * 1000000;
+    hash += key->n1 * 157;
+
+    return hash % HASH_TABLE_SIZE;
+}
 
 void cam_init()
 {
@@ -42,8 +42,7 @@ void cam_init()
         exit(1);
     }
 
-    pHashTbl->size = HASH_TABLE_SIZE;
-    pHashTbl->hashFunc = crc;
+    pHashTbl->hashFunc = Hash;
 }
 
 void cam_add_entry(ip_address_t *address, int port)
@@ -51,10 +50,9 @@ void cam_add_entry(ip_address_t *address, int port)
     unsigned long index;
     hashnode_t *pNode, *newNode;
 
-    index = pHashTbl->hashFunc(address, sizeof(ip_address_t)) % pHashTbl->size;
+    index = pHashTbl->hashFunc(address);
     pNode = pHashTbl->nodes[index];
     while (pNode) {
-//        ip_address_print(pNode->address);
         if (!memcmp(pNode->address, address, sizeof(ip_address_t))) {
             // update value
             pNode->port = port;
@@ -88,7 +86,7 @@ int cam_lookup_address(ip_address_t *address)
     unsigned long index;
     hashnode_t *pNode;
 
-    index = pHashTbl->hashFunc(address, sizeof(ip_address_t)) % pHashTbl->size;
+    index = pHashTbl->hashFunc(address);
     pNode = pHashTbl->nodes[index];
     while (pNode) {
         if (!memcmp(pNode->address, address, sizeof(ip_address_t))) {
