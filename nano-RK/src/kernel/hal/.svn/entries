@@ -1,46 +1,0 @@
-10
-
-dir
-1064
-svn://nanork.org/srv/svn/repos/nano-RK/src/kernel/hal
-svn://nanork.org/srv/svn/repos
-
-
-
-2010-01-18T00:40:15.533576Z
-1034
-agr
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-d5223eb8-5f29-0410-a7c7-974caa64965b
-
-atmega32
-dir
-
-include
-dir
-
-msp430x1611
-dir
-
-atmega128
-dir
-
-atmega1281
-dir
-
-msp430x149
-dir
-

@@ -129,6 +129,14 @@ uint16_t mp_rcv=0;
     uint16_t oos_count = 0;
 #endif 
 
+#ifdef TDMA_SLEEP_OPT
+    // acts as both a control value and a slot value
+    // if 0xFFFF, then sleep opt is not active
+    // otherwise will hold the slot that the feature was
+    // activated for this cycle
+    uint16_t tdma_sleep_opt_slot;
+#endif
+
 uint8_t tdma_init_done = 0;
 uint8_t tdma_running=0;
 
@@ -136,10 +144,6 @@ uint32_t mac_address;
 uint16_t my_addr16=-1;
 
 uint16_t minipkt_id = 0;
-
-// for autoack
-static uint8_t pkt_got_ack = 0;
-
 
 uint8_t tdma_channel   = TDMA_DEFAULT_CHANNEL;
 int8_t tdma_cca_thresh = TDMA_DEFAULT_CCA_THRESH;
@@ -481,6 +485,11 @@ int8_t tdma_init (uint8_t chan)
     return NRK_ERROR;
     }
 
+    // make sure sleeping til end of slot is disabled
+    #ifdef TDMA_SLEEP_OPT
+    tdma_sleep_opt_slot = 0xFFFF;
+    #endif
+
     tdma_init_done = 1;
     return NRK_OK;
 }
@@ -794,6 +803,14 @@ if (next_schedule_entry.priority != 1)
                 nrk_kprintf(PSTR("No sender heard\r\n"));
             #endif
 
+            // If we're using the sleep opt feature, record this slot as
+            // the one in the cycle we didn't receive anything from children
+            // and thus we'll sleep for the rest of the RX from child slots
+            // in this cycle
+            #ifdef TDMA_SLEEP_OPT
+                tdma_sleep_opt_slot = next_schedule_entry.slot;
+            #endif
+
             //nrk_spin_wait_us(100);
 
             //_rf_rx_set_buffered();
@@ -1062,8 +1079,8 @@ else // if a rxsync slot
         // check the received time token against current one
         // if it's newer, sync to it.
         // token loops around, so allow some slack
-        if (tdma_node_mode != TDMA_MASTER && (tmp_token > tdma_time_token || 
-                    (tdma_time_token > 110 && tmp_token < 10 )))
+        if (tdma_node_mode != TDMA_MASTER && ((tmp_token > tdma_time_token) || 
+                    (tdma_time_token > 110 && tmp_token < 40 )))
         {   
             
             //we have a valid packet, so sync to it
@@ -1156,6 +1173,11 @@ else // if a rxsync slot
         }
         else
         { 
+#ifdef TDMA_STATS_COLLECT
+            // If I was supposed to get a sync packet on this slot, and did, record it
+            if (next_schedule_entry.priority == 1)
+                sync_rx_cnt++;
+#endif
             // If it is an explicit time sync packet, then release it
             // so it doesn't block a buffer...
             //nrk_kprintf( PSTR("got explicit sync\r\n") );
@@ -1212,11 +1234,13 @@ void _tdma_tx (uint16_t slot)
     tdma_rfTxInfo.pPayload[TDMA_SLOT + 1] = (-1 & 0xFF);
 
     // This clears the explicit sync bit
-    tdma_rfTxInfo.pPayload[TDMA_TIME_TOKEN]= -1; 
+    tdma_rfTxInfo.pPayload[TDMA_TIME_TOKEN]= tdma_time_token; 
     explicit_tsync=0;
 
     // If it is an empty packet set explicit sync bit
-    if(tdma_rfTxInfo.length==TDMA_DATA_START )
+    //if(tdma_rfTxInfo.length==TDMA_DATA_START )
+    
+    if (next_schedule_entry.type == TDMA_TX_CHILD)
     {
         explicit_tsync=1;
         tdma_rfTxInfo.pPayload[TDMA_TIME_TOKEN]|= 0x80;
@@ -1653,7 +1677,8 @@ if (next_schedule_entry.type == TDMA_TX_PARENT)
     tdma_rfTxInfo.pPayload[TDMA_SLOT + 1] = (slot & 0xFF);
 
     // This clears the explicit sync bit
-    tdma_rfTxInfo.pPayload[TDMA_TIME_TOKEN]= tdma_time_token; 
+    // don't uncomment this.  It will mess up the sync packet stuff.
+    //tdma_rfTxInfo.pPayload[TDMA_TIME_TOKEN]= tdma_time_token; 
 
 
 #ifdef GPIO_TX_DEBUG
@@ -1675,13 +1700,6 @@ if (next_schedule_entry.type == TDMA_TX_PARENT)
     stats_stop_rdo();
 #endif
     rf_rx_off();
-
-    //if (!pkt_got_ack)
-    //    printf("af %u\r\n", tdma_rfTxInfo.destAddr);
-
-    // restore dest addr at end
-    //if (explicit_tsync)
-    //    tdma_rfTxInfo.destAddr = dest_tmp;
 
 #ifdef TDMA_STATS_COLLECT
     if (next_schedule_entry.priority > 0)
@@ -2012,15 +2030,15 @@ if (tdma_node_mode == TDMA_MASTER)
 
                 if (sync_slot < 0 || sync_slot > TDMA_SLOTS_PER_CYCLE)
                 {
-                    printf("BAD SYNC %d\r\n", sync_slot);
+                    printf("BAD SYNC %u\r\n", sync_slot);
                     continue;
                 }
 
                 uint8_t tmp_token;
                 tmp_token = 0x7F & tdma_rfRxInfo.pPayload[TDMA_TIME_TOKEN];
 
-                if ((tmp_token <= tdma_time_token) && 
-                    !(tdma_time_token > 110 && tmp_token < 10 ))
+                if ((tmp_token <= tdma_time_token) &&
+                    !(tdma_time_token > 110 && tmp_token < 40 ))
                 {   
                     printf("bad token %d %d\r\n", tdma_time_token, tmp_token);
                     continue;
@@ -2122,7 +2140,14 @@ if (tdma_node_mode == TDMA_MASTER)
 #endif
                 // sync time has expired.  Go into re-sync mode
                 in_sync = 0;
-                //tdma_time_token = 0;
+
+                // to prevent infinite syncing between 2 nodes that are not parent,
+                // increment the token count by 1
+                //tdma_time_token++;
+
+                //if (tdma_time_token > 126)
+                //    tdma_time_token = 0;
+
                 continue;
             }
 
@@ -2185,6 +2210,8 @@ if (tdma_node_mode == TDMA_MASTER)
             nrk_event_signal (tdma_tx_pkt_done_signal);
         }
 
+        
+
 #ifdef GPIO_NEWTMR_SLT_DEBUG
         PORTA &= ~BM(GPIO_NEWTMR_SLT_DEBUG);
 #endif
@@ -2242,6 +2269,10 @@ if (tdma_node_mode == TDMA_MASTER)
         {
             _tdma_rx(next_schedule_entry.slot);
 
+#ifdef TDMA_STATS_COLLECT
+            if (next_schedule_entry.priority == 1)
+                sync_slot_cnt++;
+#endif
 /*
             if (tdma_rx_pkt_check() == 0)
             {
@@ -2388,6 +2419,26 @@ if (tdma_node_mode == TDMA_MASTER)
 #endif
 
         next_schedule_entry = tdma_schedule_get_next(next_schedule_entry.slot);
+
+        #ifdef TDMA_SLEEP_OPT
+            // if tdma_sleep_opt is enabled for this cycle, I have to search the schedule until
+            // a slot that is not a RX from child is found.
+            if (tdma_sleep_opt_slot != 0xFFFF)
+            {
+                // while an rx slot from child
+                while(next_schedule_entry.type == TDMA_RX
+                      && next_schedule_entry.priority != 1
+                      // and the slot is further along in the cycle
+                      && next_schedule_entry.slot > tdma_sleep_opt_slot)
+                {
+                    next_schedule_entry = tdma_schedule_get_next(next_schedule_entry.slot);
+                }
+            
+                if (next_schedule_entry.slot <= tdma_sleep_opt_slot)
+                    tdma_sleep_opt_slot = 0xFFFF;
+            }
+        #endif
+
     }
 }
 

@@ -74,7 +74,7 @@ typedef void (*VFPTR)(void);
 // Standard GCC include files for AVR
 #include <avr/io.h>
 #include <avr/pgmspace.h>
-#include <avr/signal.h>
+#include <avr/interrupt.h>
 #include <string.h>
 
 

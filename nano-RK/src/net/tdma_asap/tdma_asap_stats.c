@@ -99,6 +99,8 @@ void tdma_stats_setup(uint8_t pid)
     backoff_cnt = 0;
     dbl_pkt_cnt = 0;
     mpkt_log_curbuf=0;
+    sync_rx_cnt = 0;
+    sync_slot_cnt = 0;
     //recording_awk_reg = 0;
     //recording_awk_steal =0;
     //reg_micros_awk =0;
@@ -202,6 +204,8 @@ void tdma_stats_dump()
   // time tdma task used radio
   // number of slot steals
   // number of backoffs
+  // number of rx syncs
+  // number of sync slots
 
 #ifdef NRK_STATS_TRACKER
   nrk_stats_get(tdma_pid, &tdma_stat_struct);
@@ -210,13 +214,15 @@ void tdma_stats_dump()
   nrk_time_sub(&tdma_cpu_time, tdma_cpu_time, tree_creation_time);
 #endif
 
-  printf("SD %d %20"PRIu32" %20"PRIu32" %20"PRIu32" %20"PRIu32" %20"PRIu32"\r\n",
+  printf("SD %d %lu %lu %lu %lu %lu %u %u\r\n",
     tdma_mac_get(),
     tdma_cpu_time.secs,
     tdma_cpu_time.nano_secs,
     ticks_rdo,
     steal_cnt,
-    backoff_cnt);
+    backoff_cnt,
+    sync_rx_cnt,
+    sync_slot_cnt);
 
 }
 

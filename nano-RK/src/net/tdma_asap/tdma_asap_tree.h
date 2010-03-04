@@ -24,7 +24,7 @@
 #define DISCRETE_COLORING
 
 // use a static schedule as computed by a slot spreading algorithm
-//#define TDMA_SLOT_SPREADING
+#define TDMA_SLOT_SPREADING
 
 // # of nodes max using TDMA
 #define DIM 17

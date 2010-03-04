@@ -107,6 +107,11 @@ This implementation currently provides one RX and one TX buffer, and works with
                                      + TDMA_SLOT_DATA_TIME_US)
 
 
+    // optimization added feb 15: if none of my children
+    // have to TX I will sleep for the rest of my RX slots from children in the cycle
+    // NOTE: this is implemented as still waking up but sleeping immediately again if
+    // I don't need to be awake
+//#define TDMA_SLEEP_OPT
 
 
 // END TDMA TIMES

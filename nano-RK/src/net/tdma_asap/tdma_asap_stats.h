@@ -48,6 +48,10 @@ uint32_t steal_micros_rdo;
 uint32_t steal_cnt; 
 uint32_t backoff_cnt;
 uint32_t dbl_pkt_cnt;
+// # sync packets rcvd (100% if equal to sync_slot_cnt)
+uint16_t sync_rx_cnt;
+// # of sync slots
+uint16_t sync_slot_cnt;
 
 /*
 void steal_cca_check();
