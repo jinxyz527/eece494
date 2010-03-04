@@ -7,8 +7,7 @@
 #include <bmac.h>
 #include <nrk_error.h>
 
-// Only require MAC address for address decode 
-#define GATEWAY     0
+#define GATEWAY     1
 
 #if GATEWAY
 nrk_task_type RX_TASK;
@@ -52,35 +51,37 @@ void rx_task ()
     int8_t rssi;
     nrk_status_t ret;
     uint8_t *local_rx_buf;
-   
-    printf( "rx_task PID=%d\r\n",nrk_get_pid());
+
+    printf( "rx_task: PID=%d\r\n",nrk_get_pid());
 
     bmac_init(25);
     bmac_rx_pkt_set_buffer(rx_buf,RF_MAX_PAYLOAD_SIZE);
 
     while(1)
     {
-        ret = bmac_wait_until_rx_pkt ();
+        ret = bmac_wait_until_rx_pkt();
         if (ret == NRK_OK) {
             nrk_led_set(GREEN_LED); 
             local_rx_buf = bmac_rx_pkt_get(&len,&rssi);
-            printf( "rx_task: rssi=%d [",rssi );
-            for(i=0; i<len; i++ ) {
+
+            printf( "rx_task: rssi=%d data=", rssi);
+            for( i=0; i<len; i++ ) {
                 printf( "%c", local_rx_buf[i]);
             }
-            printf( "]\r\n" );
-            nrk_led_clr(GREEN_LED); 
+            nrk_kprintf( PSTR("\r\n") );
+ 
             bmac_rx_pkt_release();
+
+            nrk_led_clr(GREEN_LED); 
         }
     }
 }
-#else
 
-uint8_t ctr_cnt[4];
+#else
 
 void tx_task()
 {
-  uint8_t j, i,val,len,cnt = 0;
+  uint8_t val, cnt = 0;
   
   printf( "tx_task PID=%d\r\n",nrk_get_pid());
   
@@ -89,12 +90,13 @@ void tx_task()
 
   while(1)
   {
+        cnt = cnt % 100;
         nrk_led_set(GREEN_LED); 
-        sprintf( tx_buf, "%d",cnt++ );
+        sprintf( tx_buf, "%d", cnt++ );
         val = bmac_tx_pkt(tx_buf, strlen(tx_buf));
         nrk_led_clr(GREEN_LED); 
-        printf( "TX task sent data!\r\n" );
-        nrk_wait_until_next_period();
+        nrk_kprintf( PSTR("TX task sent data!\r\n") );
+//        nrk_wait_until_next_period();
   }
 }
 #endif
