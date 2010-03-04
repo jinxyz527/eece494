@@ -1,0 +1,1071 @@
+   1               		.file	"nrk_time.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.global __do_copy_data
+   8               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 131               	.global	nrk_time_sub
+ 133               	nrk_time_sub:
+ 134               		.stabd	46,0,0
+   1:../../../nano-RK/src/kernel/source/nrk_time.c **** /******************************************************************************
+   2:../../../nano-RK/src/kernel/source/nrk_time.c **** *  Nano-RK, a real-time operating system for sensor networks.
+   3:../../../nano-RK/src/kernel/source/nrk_time.c **** *  Copyright (C) 2007, Real-Time and Multimedia Lab, Carnegie Mellon University
+   4:../../../nano-RK/src/kernel/source/nrk_time.c **** *  All rights reserved.
+   5:../../../nano-RK/src/kernel/source/nrk_time.c **** *
+   6:../../../nano-RK/src/kernel/source/nrk_time.c **** *  This is the Open Source Version of Nano-RK included as part of a Dual
+   7:../../../nano-RK/src/kernel/source/nrk_time.c **** *  Licensing Model. If you are unsure which license to use please refer to:
+   8:../../../nano-RK/src/kernel/source/nrk_time.c **** *  http://www.nanork.org/nano-RK/wiki/Licensing
+   9:../../../nano-RK/src/kernel/source/nrk_time.c **** *
+  10:../../../nano-RK/src/kernel/source/nrk_time.c **** *  This program is free software: you can redistribute it and/or modify
+  11:../../../nano-RK/src/kernel/source/nrk_time.c **** *  it under the terms of the GNU General Public License as published by
+  12:../../../nano-RK/src/kernel/source/nrk_time.c **** *  the Free Software Foundation, version 2.0 of the License.
+  13:../../../nano-RK/src/kernel/source/nrk_time.c **** *
+  14:../../../nano-RK/src/kernel/source/nrk_time.c **** *  This program is distributed in the hope that it will be useful,
+  15:../../../nano-RK/src/kernel/source/nrk_time.c **** *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  16:../../../nano-RK/src/kernel/source/nrk_time.c **** *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  17:../../../nano-RK/src/kernel/source/nrk_time.c **** *  GNU General Public License for more details.
+  18:../../../nano-RK/src/kernel/source/nrk_time.c **** *
+  19:../../../nano-RK/src/kernel/source/nrk_time.c **** *  You should have received a copy of the GNU General Public License
+  20:../../../nano-RK/src/kernel/source/nrk_time.c **** *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  21:../../../nano-RK/src/kernel/source/nrk_time.c **** *
+  22:../../../nano-RK/src/kernel/source/nrk_time.c **** *  Contributing Authors (specific to this file):
+  23:../../../nano-RK/src/kernel/source/nrk_time.c **** *  Anthony Rowe
+  24:../../../nano-RK/src/kernel/source/nrk_time.c **** *  Zane Starr
+  25:../../../nano-RK/src/kernel/source/nrk_time.c **** *  Anand Eswaren
+  26:../../../nano-RK/src/kernel/source/nrk_time.c **** *******************************************************************************/
+  27:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+  28:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+  29:../../../nano-RK/src/kernel/source/nrk_time.c **** /******************************************************************************
+  30:../../../nano-RK/src/kernel/source/nrk_time.c **** *                                         GET CURRENT SYSTEM TIME
+  31:../../../nano-RK/src/kernel/source/nrk_time.c **** *
+  32:../../../nano-RK/src/kernel/source/nrk_time.c **** * Description: This function is used by your application to obtain the current 
+  33:../../../nano-RK/src/kernel/source/nrk_time.c **** * value of the 32-bit 
+  34:../../../nano-RK/src/kernel/source/nrk_time.c **** *              counter which keeps track of the number of clock ticks.
+  35:../../../nano-RK/src/kernel/source/nrk_time.c **** *
+  36:../../../nano-RK/src/kernel/source/nrk_time.c **** * Arguments  : none
+  37:../../../nano-RK/src/kernel/source/nrk_time.c **** *
+  38:../../../nano-RK/src/kernel/source/nrk_time.c **** * Returns    : The current value of OSTime
+  39:../../../nano-RK/src/kernel/source/nrk_time.c **** *******************************************************************************/
+  40:../../../nano-RK/src/kernel/source/nrk_time.c **** #include <nrk.h>
+  41:../../../nano-RK/src/kernel/source/nrk_time.c **** #include <nrk_timer.h>
+  42:../../../nano-RK/src/kernel/source/nrk_time.c **** #include <nrk_error.h>
+  43:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+  44:../../../nano-RK/src/kernel/source/nrk_time.c **** void nrk_time_get(nrk_time_t *t)
+  45:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+  46:../../../nano-RK/src/kernel/source/nrk_time.c ****  t->secs=nrk_system_time.secs;
+  47:../../../nano-RK/src/kernel/source/nrk_time.c ****  t->nano_secs=nrk_system_time.nano_secs;
+  48:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+  49:../../../nano-RK/src/kernel/source/nrk_time.c ****    t->nano_secs+=((uint32_t)_nrk_os_timer_get()*(uint32_t)NANOS_PER_TICK);
+  50:../../../nano-RK/src/kernel/source/nrk_time.c ****     while(t->nano_secs>=(uint32_t)NANOS_PER_SEC)
+  51:../../../nano-RK/src/kernel/source/nrk_time.c ****     {
+  52:../../../nano-RK/src/kernel/source/nrk_time.c ****     t->nano_secs-=(uint32_t)NANOS_PER_SEC;
+  53:../../../nano-RK/src/kernel/source/nrk_time.c ****     t->secs++;
+  54:../../../nano-RK/src/kernel/source/nrk_time.c ****     }
+  55:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+  56:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+  57:../../../nano-RK/src/kernel/source/nrk_time.c **** /*
+  58:../../../nano-RK/src/kernel/source/nrk_time.c ****  * result = high-low
+  59:../../../nano-RK/src/kernel/source/nrk_time.c ****  *
+  60:../../../nano-RK/src/kernel/source/nrk_time.c ****  */
+  61:../../../nano-RK/src/kernel/source/nrk_time.c **** int8_t nrk_time_sub(nrk_time_t *result,nrk_time_t high, nrk_time_t low)
+  62:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 136               	.LM0:
+ 137               	.LFBB1:
+ 138 0000 8F92      		push r8
+ 139 0002 9F92      		push r9
+ 140 0004 AF92      		push r10
+ 141 0006 BF92      		push r11
+ 142 0008 CF92      		push r12
+ 143 000a DF92      		push r13
+ 144 000c EF92      		push r14
+ 145 000e FF92      		push r15
+ 146 0010 0F93      		push r16
+ 147 0012 1F93      		push r17
+ 148 0014 DF93      		push r29
+ 149 0016 CF93      		push r28
+ 150 0018 CDB7      		in r28,__SP_L__
+ 151 001a DEB7      		in r29,__SP_H__
+ 152 001c 6097      		sbiw r28,16
+ 153 001e 0FB6      		in __tmp_reg__,__SREG__
+ 154 0020 F894      		cli
+ 155 0022 DEBF      		out __SP_H__,r29
+ 156 0024 0FBE      		out __SREG__,__tmp_reg__
+ 157 0026 CDBF      		out __SP_L__,r28
+ 158               	/* prologue: function */
+ 159               	/* frame size = 16 */
+ 160 0028 FC01      		movw r30,r24
+ 161 002a 0983      		std Y+1,r16
+ 162 002c 1A83      		std Y+2,r17
+ 163 002e 2B83      		std Y+3,r18
+ 164 0030 3C83      		std Y+4,r19
+ 165 0032 4D83      		std Y+5,r20
+ 166 0034 5E83      		std Y+6,r21
+ 167 0036 6F83      		std Y+7,r22
+ 168 0038 7887      		std Y+8,r23
+ 169 003a 8986      		std Y+9,r8
+ 170 003c 9A86      		std Y+10,r9
+ 171 003e AB86      		std Y+11,r10
+ 172 0040 BC86      		std Y+12,r11
+ 173 0042 CD86      		std Y+13,r12
+ 174 0044 DE86      		std Y+14,r13
+ 175 0046 EF86      		std Y+15,r14
+ 176 0048 F88A      		std Y+16,r15
+ 178               	.LM1:
+ 179 004a A980      		ldd r10,Y+1
+ 180 004c BA80      		ldd r11,Y+2
+ 181 004e CB80      		ldd r12,Y+3
+ 182 0050 DC80      		ldd r13,Y+4
+ 183 0052 2D81      		ldd r18,Y+5
+ 184 0054 3E81      		ldd r19,Y+6
+ 185 0056 4F81      		ldd r20,Y+7
+ 186 0058 5885      		ldd r21,Y+8
+ 187 005a E984      		ldd r14,Y+9
+ 188 005c FA84      		ldd r15,Y+10
+ 189 005e 0B85      		ldd r16,Y+11
+ 190 0060 1C85      		ldd r17,Y+12
+ 191 0062 8D85      		ldd r24,Y+13
+ 192 0064 9E85      		ldd r25,Y+14
+ 193 0066 AF85      		ldd r26,Y+15
+ 194 0068 B889      		ldd r27,Y+16
+  63:../../../nano-RK/src/kernel/source/nrk_time.c **** if(high.secs<low.secs) return NRK_ERROR; 
+ 196               	.LM2:
+ 197 006a AE14      		cp r10,r14
+ 198 006c BF04      		cpc r11,r15
+ 199 006e C006      		cpc r12,r16
+ 200 0070 D106      		cpc r13,r17
+ 201 0072 00F4      		brsh .+2
+ 202 0074 00C0      		rjmp .L2
+  64:../../../nano-RK/src/kernel/source/nrk_time.c **** if(low.secs==high.secs)
+ 204               	.LM3:
+ 205 0076 EA14      		cp r14,r10
+ 206 0078 FB04      		cpc r15,r11
+ 207 007a 0C05      		cpc r16,r12
+ 208 007c 1D05      		cpc r17,r13
+ 209 007e 01F4      		brne .L3
+  65:../../../nano-RK/src/kernel/source/nrk_time.c **** 	{
+  66:../../../nano-RK/src/kernel/source/nrk_time.c **** 	if((uint32_t)low.nano_secs>(uint32_t)high.nano_secs)  return NRK_ERROR;  
+ 211               	.LM4:
+ 212 0080 2817      		cp r18,r24
+ 213 0082 3907      		cpc r19,r25
+ 214 0084 4A07      		cpc r20,r26
+ 215 0086 5B07      		cpc r21,r27
+ 216 0088 00F0      		brlo .L2
+  67:../../../nano-RK/src/kernel/source/nrk_time.c **** 	result->nano_secs=(uint32_t)high.nano_secs-(uint32_t)low.nano_secs;
+ 218               	.LM5:
+ 219 008a 281B      		sub r18,r24
+ 220 008c 390B      		sbc r19,r25
+ 221 008e 4A0B      		sbc r20,r26
+ 222 0090 5B0B      		sbc r21,r27
+ 223 0092 2483      		std Z+4,r18
+ 224 0094 3583      		std Z+5,r19
+ 225 0096 4683      		std Z+6,r20
+ 226 0098 5783      		std Z+7,r21
+  68:../../../nano-RK/src/kernel/source/nrk_time.c **** 	result->secs=0;
+ 228               	.LM6:
+ 229 009a 1082      		st Z,__zero_reg__
+ 230 009c 1182      		std Z+1,__zero_reg__
+ 231 009e 1282      		std Z+2,__zero_reg__
+ 232 00a0 1382      		std Z+3,__zero_reg__
+ 233 00a2 00C0      		rjmp .L7
+ 234               	.L3:
+  69:../../../nano-RK/src/kernel/source/nrk_time.c **** 	return NRK_OK;
+  70:../../../nano-RK/src/kernel/source/nrk_time.c **** 	}
+  71:../../../nano-RK/src/kernel/source/nrk_time.c **** if(low.nano_secs > high.nano_secs)
+ 236               	.LM7:
+ 237 00a4 2817      		cp r18,r24
+ 238 00a6 3907      		cpc r19,r25
+ 239 00a8 4A07      		cpc r20,r26
+ 240 00aa 5B07      		cpc r21,r27
+ 241 00ac 00F4      		brsh .L5
+  72:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+  73:../../../nano-RK/src/kernel/source/nrk_time.c **** 	high.secs--;
+  74:../../../nano-RK/src/kernel/source/nrk_time.c **** 	high.nano_secs+=(uint32_t)NANOS_PER_SEC;
+  75:../../../nano-RK/src/kernel/source/nrk_time.c **** 	result->secs=high.secs-low.secs;
+ 243               	.LM8:
+ 244 00ae 0894      		sec
+ 245 00b0 A108      		sbc r10,__zero_reg__
+ 246 00b2 B108      		sbc r11,__zero_reg__
+ 247 00b4 C108      		sbc r12,__zero_reg__
+ 248 00b6 D108      		sbc r13,__zero_reg__
+ 249 00b8 AE18      		sub r10,r14
+ 250 00ba BF08      		sbc r11,r15
+ 251 00bc C00A      		sbc r12,r16
+ 252 00be D10A      		sbc r13,r17
+ 253 00c0 A082      		st Z,r10
+ 254 00c2 B182      		std Z+1,r11
+ 255 00c4 C282      		std Z+2,r12
+ 256 00c6 D382      		std Z+3,r13
+  76:../../../nano-RK/src/kernel/source/nrk_time.c **** 	result->nano_secs=high.nano_secs-low.nano_secs;
+ 258               	.LM9:
+ 259 00c8 2050      		subi r18,lo8(-(1000000000))
+ 260 00ca 3643      		sbci r19,hi8(-(1000000000))
+ 261 00cc 4546      		sbci r20,hlo8(-(1000000000))
+ 262 00ce 544C      		sbci r21,hhi8(-(1000000000))
+ 263               	.L8:
+ 264 00d0 281B      		sub r18,r24
+ 265 00d2 390B      		sbc r19,r25
+ 266 00d4 4A0B      		sbc r20,r26
+ 267 00d6 5B0B      		sbc r21,r27
+ 268 00d8 2483      		std Z+4,r18
+ 269 00da 3583      		std Z+5,r19
+ 270 00dc 4683      		std Z+6,r20
+ 271 00de 5783      		std Z+7,r21
+ 272               	.L7:
+ 273 00e0 81E0      		ldi r24,lo8(1)
+  77:../../../nano-RK/src/kernel/source/nrk_time.c **** 	return NRK_OK;
+ 275               	.LM10:
+ 276 00e2 00C0      		rjmp .L4
+ 277               	.L5:
+  78:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+  79:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+  80:../../../nano-RK/src/kernel/source/nrk_time.c **** result->secs=high.secs-low.secs;
+ 279               	.LM11:
+ 280 00e4 AE18      		sub r10,r14
+ 281 00e6 BF08      		sbc r11,r15
+ 282 00e8 C00A      		sbc r12,r16
+ 283 00ea D10A      		sbc r13,r17
+ 284 00ec A082      		st Z,r10
+ 285 00ee B182      		std Z+1,r11
+ 286 00f0 C282      		std Z+2,r12
+ 287 00f2 D382      		std Z+3,r13
+ 288 00f4 00C0      		rjmp .L8
+ 289               	.L2:
+  81:../../../nano-RK/src/kernel/source/nrk_time.c **** result->nano_secs=high.nano_secs-low.nano_secs;
+  82:../../../nano-RK/src/kernel/source/nrk_time.c **** return NRK_OK;
+ 291               	.LM12:
+ 292 00f6 8FEF      		ldi r24,lo8(-1)
+ 293               	.L4:
+ 294               	/* epilogue start */
+  83:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+ 296               	.LM13:
+ 297 00f8 6096      		adiw r28,16
+ 298 00fa 0FB6      		in __tmp_reg__,__SREG__
+ 299 00fc F894      		cli
+ 300 00fe DEBF      		out __SP_H__,r29
+ 301 0100 0FBE      		out __SREG__,__tmp_reg__
+ 302 0102 CDBF      		out __SP_L__,r28
+ 303 0104 CF91      		pop r28
+ 304 0106 DF91      		pop r29
+ 305 0108 1F91      		pop r17
+ 306 010a 0F91      		pop r16
+ 307 010c FF90      		pop r15
+ 308 010e EF90      		pop r14
+ 309 0110 DF90      		pop r13
+ 310 0112 CF90      		pop r12
+ 311 0114 BF90      		pop r11
+ 312 0116 AF90      		pop r10
+ 313 0118 9F90      		pop r9
+ 314 011a 8F90      		pop r8
+ 315 011c 0895      		ret
+ 317               	.Lscope1:
+ 319               		.stabd	78,0,0
+ 324               	.global	nrk_time_add
+ 326               	nrk_time_add:
+ 327               		.stabd	46,0,0
+  84:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+  85:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+  86:../../../nano-RK/src/kernel/source/nrk_time.c **** /*
+  87:../../../nano-RK/src/kernel/source/nrk_time.c ****  * result = a+b
+  88:../../../nano-RK/src/kernel/source/nrk_time.c ****  *
+  89:../../../nano-RK/src/kernel/source/nrk_time.c ****  */
+  90:../../../nano-RK/src/kernel/source/nrk_time.c **** int8_t nrk_time_add(nrk_time_t *result,nrk_time_t a, nrk_time_t b)
+  91:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 329               	.LM14:
+ 330               	.LFBB2:
+ 331 011e 8F92      		push r8
+ 332 0120 9F92      		push r9
+ 333 0122 AF92      		push r10
+ 334 0124 BF92      		push r11
+ 335 0126 CF92      		push r12
+ 336 0128 DF92      		push r13
+ 337 012a EF92      		push r14
+ 338 012c FF92      		push r15
+ 339 012e 0F93      		push r16
+ 340 0130 1F93      		push r17
+ 341 0132 DF93      		push r29
+ 342 0134 CF93      		push r28
+ 343 0136 CDB7      		in r28,__SP_L__
+ 344 0138 DEB7      		in r29,__SP_H__
+ 345 013a 6097      		sbiw r28,16
+ 346 013c 0FB6      		in __tmp_reg__,__SREG__
+ 347 013e F894      		cli
+ 348 0140 DEBF      		out __SP_H__,r29
+ 349 0142 0FBE      		out __SREG__,__tmp_reg__
+ 350 0144 CDBF      		out __SP_L__,r28
+ 351               	/* prologue: function */
+ 352               	/* frame size = 16 */
+ 353 0146 FC01      		movw r30,r24
+ 354 0148 0983      		std Y+1,r16
+ 355 014a 1A83      		std Y+2,r17
+ 356 014c 2B83      		std Y+3,r18
+ 357 014e 3C83      		std Y+4,r19
+ 358 0150 4D83      		std Y+5,r20
+ 359 0152 5E83      		std Y+6,r21
+ 360 0154 6F83      		std Y+7,r22
+ 361 0156 7887      		std Y+8,r23
+ 362 0158 8986      		std Y+9,r8
+ 363 015a 9A86      		std Y+10,r9
+ 364 015c AB86      		std Y+11,r10
+ 365 015e BC86      		std Y+12,r11
+ 366 0160 CD86      		std Y+13,r12
+ 367 0162 DE86      		std Y+14,r13
+ 368 0164 EF86      		std Y+15,r14
+ 369 0166 F88A      		std Y+16,r15
+ 371               	.LM15:
+ 372 0168 ED80      		ldd r14,Y+5
+ 373 016a FE80      		ldd r15,Y+6
+ 374 016c 0F81      		ldd r16,Y+7
+ 375 016e 1885      		ldd r17,Y+8
+ 376 0170 8D85      		ldd r24,Y+13
+ 377 0172 9E85      		ldd r25,Y+14
+ 378 0174 AF85      		ldd r26,Y+15
+ 379 0176 B889      		ldd r27,Y+16
+  92:../../../nano-RK/src/kernel/source/nrk_time.c **** result->secs=a.secs+b.secs;
+ 381               	.LM16:
+ 382 0178 2985      		ldd r18,Y+9
+ 383 017a 3A85      		ldd r19,Y+10
+ 384 017c 4B85      		ldd r20,Y+11
+ 385 017e 5C85      		ldd r21,Y+12
+ 386 0180 A980      		ldd r10,Y+1
+ 387 0182 BA80      		ldd r11,Y+2
+ 388 0184 CB80      		ldd r12,Y+3
+ 389 0186 DC80      		ldd r13,Y+4
+ 390 0188 2A0D      		add r18,r10
+ 391 018a 3B1D      		adc r19,r11
+ 392 018c 4C1D      		adc r20,r12
+ 393 018e 5D1D      		adc r21,r13
+ 394 0190 2083      		st Z,r18
+ 395 0192 3183      		std Z+1,r19
+ 396 0194 4283      		std Z+2,r20
+ 397 0196 5383      		std Z+3,r21
+  93:../../../nano-RK/src/kernel/source/nrk_time.c **** result->nano_secs=a.nano_secs+b.nano_secs;
+ 399               	.LM17:
+ 400 0198 8E0D      		add r24,r14
+ 401 019a 9F1D      		adc r25,r15
+ 402 019c A01F      		adc r26,r16
+ 403 019e B11F      		adc r27,r17
+ 404 01a0 8483      		std Z+4,r24
+ 405 01a2 9583      		std Z+5,r25
+ 406 01a4 A683      		std Z+6,r26
+ 407 01a6 B783      		std Z+7,r27
+ 408 01a8 00C0      		rjmp .L11
+ 409               	.L12:
+ 410               	.LBB4:
+ 411               	.LBB5:
+  94:../../../nano-RK/src/kernel/source/nrk_time.c **** nrk_time_compact_nanos(result);
+  95:../../../nano-RK/src/kernel/source/nrk_time.c **** return NRK_OK;
+  96:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+  97:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+  98:../../../nano-RK/src/kernel/source/nrk_time.c **** /*
+  99:../../../nano-RK/src/kernel/source/nrk_time.c ****  * nrk_time_compact_nanos()
+ 100:../../../nano-RK/src/kernel/source/nrk_time.c ****  *
+ 101:../../../nano-RK/src/kernel/source/nrk_time.c ****  * If a time structure has more than 1 second represented in
+ 102:../../../nano-RK/src/kernel/source/nrk_time.c ****  * the nano seconds field, this function will move the nano
+ 103:../../../nano-RK/src/kernel/source/nrk_time.c ****  * seconds into the seconds field.
+ 104:../../../nano-RK/src/kernel/source/nrk_time.c ****  *
+ 105:../../../nano-RK/src/kernel/source/nrk_time.c ****  */
+ 106:../../../nano-RK/src/kernel/source/nrk_time.c **** inline void nrk_time_compact_nanos(nrk_time_t *t)
+ 107:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 108:../../../nano-RK/src/kernel/source/nrk_time.c ****   while(t->nano_secs>=NANOS_PER_SEC)
+ 109:../../../nano-RK/src/kernel/source/nrk_time.c ****     {
+ 110:../../../nano-RK/src/kernel/source/nrk_time.c ****     t->nano_secs-=NANOS_PER_SEC;
+ 111:../../../nano-RK/src/kernel/source/nrk_time.c ****     t->secs++;
+ 413               	.LM18:
+ 414 01aa 2081      		ld r18,Z
+ 415 01ac 3181      		ldd r19,Z+1
+ 416 01ae 4281      		ldd r20,Z+2
+ 417 01b0 5381      		ldd r21,Z+3
+ 418 01b2 2F5F      		subi r18,lo8(-(1))
+ 419 01b4 3F4F      		sbci r19,hi8(-(1))
+ 420 01b6 4F4F      		sbci r20,hlo8(-(1))
+ 421 01b8 5F4F      		sbci r21,hhi8(-(1))
+ 422 01ba 2083      		st Z,r18
+ 423 01bc 3183      		std Z+1,r19
+ 424 01be 4283      		std Z+2,r20
+ 425 01c0 5383      		std Z+3,r21
+ 426 01c2 8050      		subi r24,lo8(-(-1000000000))
+ 427 01c4 9A4C      		sbci r25,hi8(-(-1000000000))
+ 428 01c6 AA49      		sbci r26,hlo8(-(-1000000000))
+ 429 01c8 BB43      		sbci r27,hhi8(-(-1000000000))
+ 430               	.L11:
+ 432               	.LM19:
+ 433 01ca 8030      		cpi r24,lo8(1000000000)
+ 434 01cc 2AEC      		ldi r18,hi8(1000000000)
+ 435 01ce 9207      		cpc r25,r18
+ 436 01d0 2AE9      		ldi r18,hlo8(1000000000)
+ 437 01d2 A207      		cpc r26,r18
+ 438 01d4 2BE3      		ldi r18,hhi8(1000000000)
+ 439 01d6 B207      		cpc r27,r18
+ 440 01d8 00F4      		brsh .L12
+ 441 01da 8483      		std Z+4,r24
+ 442 01dc 9583      		std Z+5,r25
+ 443 01de A683      		std Z+6,r26
+ 444 01e0 B783      		std Z+7,r27
+ 445               	.LBE5:
+ 446               	.LBE4:
+ 448               	.LM20:
+ 449 01e2 81E0      		ldi r24,lo8(1)
+ 450               	/* epilogue start */
+ 451 01e4 6096      		adiw r28,16
+ 452 01e6 0FB6      		in __tmp_reg__,__SREG__
+ 453 01e8 F894      		cli
+ 454 01ea DEBF      		out __SP_H__,r29
+ 455 01ec 0FBE      		out __SREG__,__tmp_reg__
+ 456 01ee CDBF      		out __SP_L__,r28
+ 457 01f0 CF91      		pop r28
+ 458 01f2 DF91      		pop r29
+ 459 01f4 1F91      		pop r17
+ 460 01f6 0F91      		pop r16
+ 461 01f8 FF90      		pop r15
+ 462 01fa EF90      		pop r14
+ 463 01fc DF90      		pop r13
+ 464 01fe CF90      		pop r12
+ 465 0200 BF90      		pop r11
+ 466 0202 AF90      		pop r10
+ 467 0204 9F90      		pop r9
+ 468 0206 8F90      		pop r8
+ 469 0208 0895      		ret
+ 471               	.Lscope2:
+ 473               		.stabd	78,0,0
+ 476               	.global	nrk_time_compact_nanos
+ 478               	nrk_time_compact_nanos:
+ 479               		.stabd	46,0,0
+ 481               	.LM21:
+ 482               	.LFBB3:
+ 483               	/* prologue: function */
+ 484               	/* frame size = 0 */
+ 485 020a FC01      		movw r30,r24
+ 487               	.LM22:
+ 488 020c 8481      		ldd r24,Z+4
+ 489 020e 9581      		ldd r25,Z+5
+ 490 0210 A681      		ldd r26,Z+6
+ 491 0212 B781      		ldd r27,Z+7
+ 493               	.LM23:
+ 494 0214 00C0      		rjmp .L15
+ 495               	.L16:
+ 497               	.LM24:
+ 498 0216 2081      		ld r18,Z
+ 499 0218 3181      		ldd r19,Z+1
+ 500 021a 4281      		ldd r20,Z+2
+ 501 021c 5381      		ldd r21,Z+3
+ 502 021e 2F5F      		subi r18,lo8(-(1))
+ 503 0220 3F4F      		sbci r19,hi8(-(1))
+ 504 0222 4F4F      		sbci r20,hlo8(-(1))
+ 505 0224 5F4F      		sbci r21,hhi8(-(1))
+ 506 0226 2083      		st Z,r18
+ 507 0228 3183      		std Z+1,r19
+ 508 022a 4283      		std Z+2,r20
+ 509 022c 5383      		std Z+3,r21
+ 510 022e 8050      		subi r24,lo8(-(-1000000000))
+ 511 0230 9A4C      		sbci r25,hi8(-(-1000000000))
+ 512 0232 AA49      		sbci r26,hlo8(-(-1000000000))
+ 513 0234 BB43      		sbci r27,hhi8(-(-1000000000))
+ 514               	.L15:
+ 516               	.LM25:
+ 517 0236 8030      		cpi r24,lo8(1000000000)
+ 518 0238 2AEC      		ldi r18,hi8(1000000000)
+ 519 023a 9207      		cpc r25,r18
+ 520 023c 2AE9      		ldi r18,hlo8(1000000000)
+ 521 023e A207      		cpc r26,r18
+ 522 0240 2BE3      		ldi r18,hhi8(1000000000)
+ 523 0242 B207      		cpc r27,r18
+ 524 0244 00F4      		brsh .L16
+ 525 0246 8483      		std Z+4,r24
+ 526 0248 9583      		std Z+5,r25
+ 527 024a A683      		std Z+6,r26
+ 528 024c B783      		std Z+7,r27
+ 529               	/* epilogue start */
+ 112:../../../nano-RK/src/kernel/source/nrk_time.c ****     }
+ 113:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+ 531               	.LM26:
+ 532 024e 0895      		ret
+ 534               	.Lscope3:
+ 536               		.stabd	78,0,0
+ 540               	.global	nrk_time_set
+ 542               	nrk_time_set:
+ 543               		.stabd	46,0,0
+ 114:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 115:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 116:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 117:../../../nano-RK/src/kernel/source/nrk_time.c **** void nrk_time_set(uint32_t secs, uint32_t nano_secs)
+ 118:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 545               	.LM27:
+ 546               	.LFBB4:
+ 547               	/* prologue: function */
+ 548               	/* frame size = 0 */
+ 119:../../../nano-RK/src/kernel/source/nrk_time.c ****   nrk_system_time.secs=secs;
+ 550               	.LM28:
+ 551 0250 6093 0000 		sts nrk_system_time,r22
+ 552 0254 7093 0000 		sts (nrk_system_time)+1,r23
+ 553 0258 8093 0000 		sts (nrk_system_time)+2,r24
+ 554 025c 9093 0000 		sts (nrk_system_time)+3,r25
+ 120:../../../nano-RK/src/kernel/source/nrk_time.c ****   nrk_system_time.nano_secs=nano_secs;
+ 556               	.LM29:
+ 557 0260 2093 0000 		sts nrk_system_time+4,r18
+ 558 0264 3093 0000 		sts (nrk_system_time+4)+1,r19
+ 559 0268 4093 0000 		sts (nrk_system_time+4)+2,r20
+ 560 026c 5093 0000 		sts (nrk_system_time+4)+3,r21
+ 561               	/* epilogue start */
+ 121:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+ 563               	.LM30:
+ 564 0270 0895      		ret
+ 566               	.Lscope4:
+ 568               		.stabd	78,0,0
+ 571               	.global	_nrk_time_to_ticks
+ 573               	_nrk_time_to_ticks:
+ 574               		.stabd	46,0,0
+ 122:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 123:../../../nano-RK/src/kernel/source/nrk_time.c **** uint16_t _nrk_time_to_ticks(nrk_time_t *t)
+ 124:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 576               	.LM31:
+ 577               	.LFBB5:
+ 578 0272 AF92      		push r10
+ 579 0274 BF92      		push r11
+ 580 0276 CF92      		push r12
+ 581 0278 DF92      		push r13
+ 582 027a EF92      		push r14
+ 583 027c FF92      		push r15
+ 584 027e 0F93      		push r16
+ 585 0280 1F93      		push r17
+ 586               	/* prologue: function */
+ 587               	/* frame size = 0 */
+ 588 0282 FC01      		movw r30,r24
+ 125:../../../nano-RK/src/kernel/source/nrk_time.c **** uint16_t ticks;
+ 126:../../../nano-RK/src/kernel/source/nrk_time.c **** //uint16_t tmp;
+ 127:../../../nano-RK/src/kernel/source/nrk_time.c **** uint8_t i;
+ 128:../../../nano-RK/src/kernel/source/nrk_time.c **** // FIXME: This will overflow
+ 129:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 130:../../../nano-RK/src/kernel/source/nrk_time.c **** if(t->secs>0)
+ 590               	.LM32:
+ 591 0284 2081      		ld r18,Z
+ 592 0286 3181      		ldd r19,Z+1
+ 593 0288 4281      		ldd r20,Z+2
+ 594 028a 5381      		ldd r21,Z+3
+ 595 028c 2115      		cp r18,__zero_reg__
+ 596 028e 3105      		cpc r19,__zero_reg__
+ 597 0290 4105      		cpc r20,__zero_reg__
+ 598 0292 5105      		cpc r21,__zero_reg__
+ 599 0294 01F0      		breq .L21
+ 131:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 132:../../../nano-RK/src/kernel/source/nrk_time.c ****    if(t->secs>42) return 0;
+ 601               	.LM33:
+ 602 0296 2B32      		cpi r18,lo8(43)
+ 603 0298 3105      		cpc r19,__zero_reg__
+ 604 029a 4105      		cpc r20,__zero_reg__
+ 605 029c 5105      		cpc r21,__zero_reg__
+ 606 029e 00F0      		brlo .L22
+ 607 02a0 20E0      		ldi r18,lo8(0)
+ 608 02a2 30E0      		ldi r19,hi8(0)
+ 609 02a4 00C0      		rjmp .L23
+ 610               	.L22:
+ 611 02a6 80E0      		ldi r24,lo8(0)
+ 612 02a8 00C0      		rjmp .L24
+ 613               	.L25:
+ 133:../../../nano-RK/src/kernel/source/nrk_time.c ****    for(i=0; i<t->secs; i++ ) t->nano_secs+=NANOS_PER_SEC;
+ 615               	.LM34:
+ 616 02aa A12C      		mov r10,__zero_reg__
+ 617 02ac 9AEC      		ldi r25,hi8(1000000000)
+ 618 02ae B92E      		mov r11,r25
+ 619 02b0 9AE9      		ldi r25,hlo8(1000000000)
+ 620 02b2 C92E      		mov r12,r25
+ 621 02b4 9BE3      		ldi r25,hhi8(1000000000)
+ 622 02b6 D92E      		mov r13,r25
+ 623 02b8 EA0C      		add r14,r10
+ 624 02ba FB1C      		adc r15,r11
+ 625 02bc 0C1D      		adc r16,r12
+ 626 02be 1D1D      		adc r17,r13
+ 627 02c0 E482      		std Z+4,r14
+ 628 02c2 F582      		std Z+5,r15
+ 629 02c4 0683      		std Z+6,r16
+ 630 02c6 1783      		std Z+7,r17
+ 631 02c8 8F5F      		subi r24,lo8(-(1))
+ 632               	.L24:
+ 633 02ca A82E      		mov r10,r24
+ 634 02cc BB24      		clr r11
+ 635 02ce CC24      		clr r12
+ 636 02d0 DD24      		clr r13
+ 637 02d2 E480      		ldd r14,Z+4
+ 638 02d4 F580      		ldd r15,Z+5
+ 639 02d6 0681      		ldd r16,Z+6
+ 640 02d8 1781      		ldd r17,Z+7
+ 641 02da A216      		cp r10,r18
+ 642 02dc B306      		cpc r11,r19
+ 643 02de C406      		cpc r12,r20
+ 644 02e0 D506      		cpc r13,r21
+ 645 02e2 00F0      		brlo .L25
+ 134:../../../nano-RK/src/kernel/source/nrk_time.c ****    ticks=t->nano_secs/(uint32_t)NANOS_PER_TICK;
+ 647               	.LM35:
+ 648 02e4 C801      		movw r24,r16
+ 649 02e6 B701      		movw r22,r14
+ 650 02e8 00C0      		rjmp .L27
+ 651               	.L21:
+ 135:../../../nano-RK/src/kernel/source/nrk_time.c **** }else
+ 136:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 137:../../../nano-RK/src/kernel/source/nrk_time.c **** ticks=t->nano_secs/(uint32_t)NANOS_PER_TICK;
+ 653               	.LM36:
+ 654 02ea 6481      		ldd r22,Z+4
+ 655 02ec 7581      		ldd r23,Z+5
+ 656 02ee 8681      		ldd r24,Z+6
+ 657 02f0 9781      		ldd r25,Z+7
+ 658               	.L27:
+ 659 02f2 23EB      		ldi r18,lo8(976563)
+ 660 02f4 36EE      		ldi r19,hi8(976563)
+ 661 02f6 4EE0      		ldi r20,hlo8(976563)
+ 662 02f8 50E0      		ldi r21,hhi8(976563)
+ 663 02fa 0E94 0000 		call __udivmodsi4
+ 664               	.L23:
+ 138:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+ 139:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 140:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 141:../../../nano-RK/src/kernel/source/nrk_time.c **** /*
+ 142:../../../nano-RK/src/kernel/source/nrk_time.c **** if(t.secs>=1)
+ 143:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 144:../../../nano-RK/src/kernel/source/nrk_time.c **** t.nano_secs+=NANOS_PER_SEC;
+ 145:../../../nano-RK/src/kernel/source/nrk_time.c **** t.secs--;
+ 146:../../../nano-RK/src/kernel/source/nrk_time.c **** ticks=t.nano_secs/(uint32_t)NANOS_PER_TICK;
+ 147:../../../nano-RK/src/kernel/source/nrk_time.c **** ticks+=t.secs*TICKS_PER_SEC;
+ 148:../../../nano-RK/src/kernel/source/nrk_time.c **** 	nrk_kprintf( PSTR("1"));
+ 149:../../../nano-RK/src/kernel/source/nrk_time.c **** }else
+ 150:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 151:../../../nano-RK/src/kernel/source/nrk_time.c **** ticks=t.nano_secs/(uint32_t)NANOS_PER_TICK;
+ 152:../../../nano-RK/src/kernel/source/nrk_time.c **** 	nrk_kprintf( PSTR("2"));
+ 153:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+ 154:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 155:../../../nano-RK/src/kernel/source/nrk_time.c **** tmp=ticks;
+ 156:../../../nano-RK/src/kernel/source/nrk_time.c **** while(tmp>TICKS_PER_SEC)tmp-=TICKS_PER_SEC;
+ 157:../../../nano-RK/src/kernel/source/nrk_time.c **** t.secs=tmp*NANOS_PER_TICK;
+ 158:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 159:../../../nano-RK/src/kernel/source/nrk_time.c **** if(t.nano_secs>(t.secs+(NANOS_PER_TICK/2)))
+ 160:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 161:../../../nano-RK/src/kernel/source/nrk_time.c **** 	nrk_kprintf( PSTR("3"));
+ 162:../../../nano-RK/src/kernel/source/nrk_time.c **** 	ticks++;
+ 163:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 164:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+ 165:../../../nano-RK/src/kernel/source/nrk_time.c **** */
+ 166:../../../nano-RK/src/kernel/source/nrk_time.c **** //ticks=t->nano_secs/(uint32_t)NANOS_PER_TICK;
+ 167:../../../nano-RK/src/kernel/source/nrk_time.c **** //ticks+=t->secs*(uint32_t)TICKS_PER_SEC;
+ 168:../../../nano-RK/src/kernel/source/nrk_time.c **** return ticks;
+ 169:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+ 666               	.LM37:
+ 667 02fe C901      		movw r24,r18
+ 668               	/* epilogue start */
+ 669 0300 1F91      		pop r17
+ 670 0302 0F91      		pop r16
+ 671 0304 FF90      		pop r15
+ 672 0306 EF90      		pop r14
+ 673 0308 DF90      		pop r13
+ 674 030a CF90      		pop r12
+ 675 030c BF90      		pop r11
+ 676 030e AF90      		pop r10
+ 677 0310 0895      		ret
+ 683               	.Lscope5:
+ 685               		.stabd	78,0,0
+ 688               	.global	_nrk_ticks_to_time
+ 690               	_nrk_ticks_to_time:
+ 691               		.stabd	46,0,0
+ 170:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 171:../../../nano-RK/src/kernel/source/nrk_time.c **** nrk_time_t _nrk_ticks_to_time(uint32_t ticks)
+ 172:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 693               	.LM38:
+ 694               	.LFBB6:
+ 695 0312 EF92      		push r14
+ 696 0314 FF92      		push r15
+ 697 0316 0F93      		push r16
+ 698 0318 1F93      		push r17
+ 699 031a DF93      		push r29
+ 700 031c CF93      		push r28
+ 701 031e CDB7      		in r28,__SP_L__
+ 702 0320 DEB7      		in r29,__SP_H__
+ 703 0322 2897      		sbiw r28,8
+ 704 0324 0FB6      		in __tmp_reg__,__SREG__
+ 705 0326 F894      		cli
+ 706 0328 DEBF      		out __SP_H__,r29
+ 707 032a 0FBE      		out __SREG__,__tmp_reg__
+ 708 032c CDBF      		out __SP_L__,r28
+ 709               	/* prologue: function */
+ 710               	/* frame size = 8 */
+ 711 032e 7B01      		movw r14,r22
+ 712 0330 8C01      		movw r16,r24
+ 173:../../../nano-RK/src/kernel/source/nrk_time.c **** nrk_time_t t;
+ 174:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 175:../../../nano-RK/src/kernel/source/nrk_time.c **** t.secs=ticks/TICKS_PER_SEC;
+ 176:../../../nano-RK/src/kernel/source/nrk_time.c **** t.nano_secs=(ticks%TICKS_PER_SEC)*NANOS_PER_TICK;
+ 177:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 178:../../../nano-RK/src/kernel/source/nrk_time.c **** return t;
+ 714               	.LM39:
+ 715 0332 7370      		andi r23,hi8(1023)
+ 716 0334 8070      		andi r24,hlo8(1023)
+ 717 0336 9070      		andi r25,hhi8(1023)
+ 718 0338 23EB      		ldi r18,lo8(976563)
+ 719 033a 36EE      		ldi r19,hi8(976563)
+ 720 033c 4EE0      		ldi r20,hlo8(976563)
+ 721 033e 50E0      		ldi r21,hhi8(976563)
+ 722 0340 0E94 0000 		call __mulsi3
+ 723 0344 6D83      		std Y+5,r22
+ 724 0346 7E83      		std Y+6,r23
+ 725 0348 8F83      		std Y+7,r24
+ 726 034a 9887      		std Y+8,r25
+ 727 034c A801      		movw r20,r16
+ 728 034e 9701      		movw r18,r14
+ 729 0350 EAE0      		ldi r30,10
+ 730 0352 5695      	1:	lsr r21
+ 731 0354 4795      		ror r20
+ 732 0356 3795      		ror r19
+ 733 0358 2795      		ror r18
+ 734 035a EA95      		dec r30
+ 735 035c 01F4      		brne 1b
+ 736 035e 2983      		std Y+1,r18
+ 737 0360 3A83      		std Y+2,r19
+ 738 0362 4B83      		std Y+3,r20
+ 739 0364 5C83      		std Y+4,r21
+ 740 0366 3A81      		ldd r19,Y+2
+ 741 0368 4B81      		ldd r20,Y+3
+ 742 036a 5C81      		ldd r21,Y+4
+ 743               	/* epilogue start */
+ 179:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+ 745               	.LM40:
+ 746 036c 2896      		adiw r28,8
+ 747 036e 0FB6      		in __tmp_reg__,__SREG__
+ 748 0370 F894      		cli
+ 749 0372 DEBF      		out __SP_H__,r29
+ 750 0374 0FBE      		out __SREG__,__tmp_reg__
+ 751 0376 CDBF      		out __SP_L__,r28
+ 752 0378 CF91      		pop r28
+ 753 037a DF91      		pop r29
+ 754 037c 1F91      		pop r17
+ 755 037e 0F91      		pop r16
+ 756 0380 FF90      		pop r15
+ 757 0382 EF90      		pop r14
+ 758 0384 0895      		ret
+ 760               	.Lscope6:
+ 762               		.stabd	78,0,0
+ 765               	.global	_nrk_time_to_ticks_long
+ 767               	_nrk_time_to_ticks_long:
+ 768               		.stabd	46,0,0
+ 180:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 181:../../../nano-RK/src/kernel/source/nrk_time.c **** uint32_t _nrk_time_to_ticks_long(nrk_time_t t)
+ 182:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 770               	.LM41:
+ 771               	.LFBB7:
+ 772 0386 AF92      		push r10
+ 773 0388 BF92      		push r11
+ 774 038a CF92      		push r12
+ 775 038c DF92      		push r13
+ 776 038e EF92      		push r14
+ 777 0390 FF92      		push r15
+ 778 0392 0F93      		push r16
+ 779 0394 1F93      		push r17
+ 780 0396 DF93      		push r29
+ 781 0398 CF93      		push r28
+ 782 039a CDB7      		in r28,__SP_L__
+ 783 039c DEB7      		in r29,__SP_H__
+ 784 039e 2897      		sbiw r28,8
+ 785 03a0 0FB6      		in __tmp_reg__,__SREG__
+ 786 03a2 F894      		cli
+ 787 03a4 DEBF      		out __SP_H__,r29
+ 788 03a6 0FBE      		out __SREG__,__tmp_reg__
+ 789 03a8 CDBF      		out __SP_L__,r28
+ 790               	/* prologue: function */
+ 791               	/* frame size = 8 */
+ 792 03aa 2983      		std Y+1,r18
+ 793 03ac 3A83      		std Y+2,r19
+ 794 03ae 4B83      		std Y+3,r20
+ 795 03b0 5C83      		std Y+4,r21
+ 796 03b2 6D83      		std Y+5,r22
+ 797 03b4 7E83      		std Y+6,r23
+ 798 03b6 8F83      		std Y+7,r24
+ 799 03b8 9887      		std Y+8,r25
+ 801               	.LM42:
+ 802 03ba E980      		ldd r14,Y+1
+ 803 03bc FA80      		ldd r15,Y+2
+ 804 03be 0B81      		ldd r16,Y+3
+ 805 03c0 1C81      		ldd r17,Y+4
+ 806 03c2 AD80      		ldd r10,Y+5
+ 807 03c4 BE80      		ldd r11,Y+6
+ 808 03c6 CF80      		ldd r12,Y+7
+ 809 03c8 D884      		ldd r13,Y+8
+ 183:../../../nano-RK/src/kernel/source/nrk_time.c **** uint32_t ticks;
+ 184:../../../nano-RK/src/kernel/source/nrk_time.c **** uint32_t tmp;
+ 185:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 186:../../../nano-RK/src/kernel/source/nrk_time.c **** if(t.secs>=1)
+ 811               	.LM43:
+ 812 03ca E114      		cp r14,__zero_reg__
+ 813 03cc F104      		cpc r15,__zero_reg__
+ 814 03ce 0105      		cpc r16,__zero_reg__
+ 815 03d0 1105      		cpc r17,__zero_reg__
+ 816 03d2 01F0      		breq .L31
+ 187:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 188:../../../nano-RK/src/kernel/source/nrk_time.c **** t.nano_secs+=NANOS_PER_SEC;
+ 818               	.LM44:
+ 819 03d4 80E0      		ldi r24,lo8(1000000000)
+ 820 03d6 9AEC      		ldi r25,hi8(1000000000)
+ 821 03d8 AAE9      		ldi r26,hlo8(1000000000)
+ 822 03da BBE3      		ldi r27,hhi8(1000000000)
+ 823 03dc A80E      		add r10,r24
+ 824 03de B91E      		adc r11,r25
+ 825 03e0 CA1E      		adc r12,r26
+ 826 03e2 DB1E      		adc r13,r27
+ 189:../../../nano-RK/src/kernel/source/nrk_time.c **** t.secs--;
+ 190:../../../nano-RK/src/kernel/source/nrk_time.c **** ticks=t.nano_secs/(uint32_t)NANOS_PER_TICK;
+ 828               	.LM45:
+ 829 03e4 C601      		movw r24,r12
+ 830 03e6 B501      		movw r22,r10
+ 831 03e8 23EB      		ldi r18,lo8(976563)
+ 832 03ea 36EE      		ldi r19,hi8(976563)
+ 833 03ec 4EE0      		ldi r20,hlo8(976563)
+ 834 03ee 50E0      		ldi r21,hhi8(976563)
+ 835 03f0 0E94 0000 		call __udivmodsi4
+ 836 03f4 C901      		movw r24,r18
+ 837 03f6 DA01      		movw r26,r20
+ 191:../../../nano-RK/src/kernel/source/nrk_time.c **** ticks+=t.secs*TICKS_PER_SEC;
+ 839               	.LM46:
+ 840 03f8 0894      		sec
+ 841 03fa E108      		sbc r14,__zero_reg__
+ 842 03fc F108      		sbc r15,__zero_reg__
+ 843 03fe 0109      		sbc r16,__zero_reg__
+ 844 0400 1109      		sbc r17,__zero_reg__
+ 845 0402 FAE0      		ldi r31,10
+ 846 0404 EE0C      	1:	lsl r14
+ 847 0406 FF1C      		rol r15
+ 848 0408 001F      		rol r16
+ 849 040a 111F      		rol r17
+ 850 040c FA95      		dec r31
+ 851 040e 01F4      		brne 1b
+ 852 0410 E80E      		add r14,r24
+ 853 0412 F91E      		adc r15,r25
+ 854 0414 0A1F      		adc r16,r26
+ 855 0416 1B1F      		adc r17,r27
+ 856 0418 00C0      		rjmp .L32
+ 857               	.L31:
+ 192:../../../nano-RK/src/kernel/source/nrk_time.c **** }else
+ 193:../../../nano-RK/src/kernel/source/nrk_time.c **** {
+ 194:../../../nano-RK/src/kernel/source/nrk_time.c **** ticks=t.nano_secs/(uint32_t)NANOS_PER_TICK;
+ 859               	.LM47:
+ 860 041a C601      		movw r24,r12
+ 861 041c B501      		movw r22,r10
+ 862 041e 23EB      		ldi r18,lo8(976563)
+ 863 0420 36EE      		ldi r19,hi8(976563)
+ 864 0422 4EE0      		ldi r20,hlo8(976563)
+ 865 0424 50E0      		ldi r21,hhi8(976563)
+ 866 0426 0E94 0000 		call __udivmodsi4
+ 867 042a E22E      		mov r14,r18
+ 868 042c F32E      		mov r15,r19
+ 869 042e 042F      		mov r16,r20
+ 870 0430 152F      		mov r17,r21
+ 871               	.L32:
+ 872 0432 C801      		movw r24,r16
+ 873 0434 B701      		movw r22,r14
+ 195:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+ 196:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 197:../../../nano-RK/src/kernel/source/nrk_time.c **** tmp=ticks;
+ 198:../../../nano-RK/src/kernel/source/nrk_time.c **** while(tmp>TICKS_PER_SEC)tmp-=TICKS_PER_SEC;
+ 875               	.LM48:
+ 876 0436 00C0      		rjmp .L33
+ 877               	.L34:
+ 878 0438 6050      		subi r22,lo8(-(-1024))
+ 879 043a 7440      		sbci r23,hi8(-(-1024))
+ 880 043c 8040      		sbci r24,hlo8(-(-1024))
+ 881 043e 9040      		sbci r25,hhi8(-(-1024))
+ 882               	.L33:
+ 883 0440 6130      		cpi r22,lo8(1025)
+ 884 0442 A4E0      		ldi r26,hi8(1025)
+ 885 0444 7A07      		cpc r23,r26
+ 886 0446 A0E0      		ldi r26,hlo8(1025)
+ 887 0448 8A07      		cpc r24,r26
+ 888 044a A0E0      		ldi r26,hhi8(1025)
+ 889 044c 9A07      		cpc r25,r26
+ 890 044e 00F4      		brsh .L34
+ 199:../../../nano-RK/src/kernel/source/nrk_time.c **** t.secs=tmp*NANOS_PER_TICK;
+ 200:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 201:../../../nano-RK/src/kernel/source/nrk_time.c **** if(t.nano_secs>t.secs+(NANOS_PER_TICK/2))ticks++;
+ 892               	.LM49:
+ 893 0450 23EB      		ldi r18,lo8(976563)
+ 894 0452 36EE      		ldi r19,hi8(976563)
+ 895 0454 4EE0      		ldi r20,hlo8(976563)
+ 896 0456 50E0      		ldi r21,hhi8(976563)
+ 897 0458 0E94 0000 		call __mulsi3
+ 898 045c 675A      		subi r22,lo8(-(488281))
+ 899 045e 7C48      		sbci r23,hi8(-(488281))
+ 900 0460 884F      		sbci r24,hlo8(-(488281))
+ 901 0462 9F4F      		sbci r25,hhi8(-(488281))
+ 902 0464 6A15      		cp r22,r10
+ 903 0466 7B05      		cpc r23,r11
+ 904 0468 8C05      		cpc r24,r12
+ 905 046a 9D05      		cpc r25,r13
+ 906 046c 00F4      		brsh .L35
+ 907 046e 0894      		sec
+ 908 0470 E11C      		adc r14,__zero_reg__
+ 909 0472 F11C      		adc r15,__zero_reg__
+ 910 0474 011D      		adc r16,__zero_reg__
+ 911 0476 111D      		adc r17,__zero_reg__
+ 912               	.L35:
+ 202:../../../nano-RK/src/kernel/source/nrk_time.c **** 
+ 203:../../../nano-RK/src/kernel/source/nrk_time.c **** //ticks=t->nano_secs/(uint32_t)NANOS_PER_TICK;
+ 204:../../../nano-RK/src/kernel/source/nrk_time.c **** //ticks+=t->secs*(uint32_t)TICKS_PER_SEC;
+ 205:../../../nano-RK/src/kernel/source/nrk_time.c **** return ticks;
+ 206:../../../nano-RK/src/kernel/source/nrk_time.c **** }
+ 914               	.LM50:
+ 915 0478 B701      		movw r22,r14
+ 916 047a C801      		movw r24,r16
+ 917               	/* epilogue start */
+ 918 047c 2896      		adiw r28,8
+ 919 047e 0FB6      		in __tmp_reg__,__SREG__
+ 920 0480 F894      		cli
+ 921 0482 DEBF      		out __SP_H__,r29
+ 922 0484 0FBE      		out __SREG__,__tmp_reg__
+ 923 0486 CDBF      		out __SP_L__,r28
+ 924 0488 CF91      		pop r28
+ 925 048a DF91      		pop r29
+ 926 048c 1F91      		pop r17
+ 927 048e 0F91      		pop r16
+ 928 0490 FF90      		pop r15
+ 929 0492 EF90      		pop r14
+ 930 0494 DF90      		pop r13
+ 931 0496 CF90      		pop r12
+ 932 0498 BF90      		pop r11
+ 933 049a AF90      		pop r10
+ 934 049c 0895      		ret
+ 940               	.Lscope7:
+ 942               		.stabd	78,0,0
+ 945               	.global	nrk_time_get
+ 947               	nrk_time_get:
+ 948               		.stabd	46,0,0
+ 950               	.LM51:
+ 951               	.LFBB8:
+ 952 049e EF92      		push r14
+ 953 04a0 FF92      		push r15
+ 954 04a2 0F93      		push r16
+ 955 04a4 1F93      		push r17
+ 956 04a6 CF93      		push r28
+ 957 04a8 DF93      		push r29
+ 958               	/* prologue: function */
+ 959               	/* frame size = 0 */
+ 960 04aa EC01      		movw r28,r24
+ 962               	.LM52:
+ 963 04ac 8091 0000 		lds r24,nrk_system_time
+ 964 04b0 9091 0000 		lds r25,(nrk_system_time)+1
+ 965 04b4 A091 0000 		lds r26,(nrk_system_time)+2
+ 966 04b8 B091 0000 		lds r27,(nrk_system_time)+3
+ 967 04bc 8883      		st Y,r24
+ 968 04be 9983      		std Y+1,r25
+ 969 04c0 AA83      		std Y+2,r26
+ 970 04c2 BB83      		std Y+3,r27
+ 972               	.LM53:
+ 973 04c4 E090 0000 		lds r14,nrk_system_time+4
+ 974 04c8 F090 0000 		lds r15,(nrk_system_time+4)+1
+ 975 04cc 0091 0000 		lds r16,(nrk_system_time+4)+2
+ 976 04d0 1091 0000 		lds r17,(nrk_system_time+4)+3
+ 977 04d4 EC82      		std Y+4,r14
+ 978 04d6 FD82      		std Y+5,r15
+ 979 04d8 0E83      		std Y+6,r16
+ 980 04da 1F83      		std Y+7,r17
+ 982               	.LM54:
+ 983 04dc 0E94 0000 		call _nrk_os_timer_get
+ 984 04e0 682F      		mov r22,r24
+ 985 04e2 70E0      		ldi r23,lo8(0)
+ 986 04e4 80E0      		ldi r24,lo8(0)
+ 987 04e6 90E0      		ldi r25,hi8(0)
+ 988 04e8 23EB      		ldi r18,lo8(976563)
+ 989 04ea 36EE      		ldi r19,hi8(976563)
+ 990 04ec 4EE0      		ldi r20,hlo8(976563)
+ 991 04ee 50E0      		ldi r21,hhi8(976563)
+ 992 04f0 0E94 0000 		call __mulsi3
+ 993 04f4 6E0D      		add r22,r14
+ 994 04f6 7F1D      		adc r23,r15
+ 995 04f8 801F      		adc r24,r16
+ 996 04fa 911F      		adc r25,r17
+ 997 04fc 6C83      		std Y+4,r22
+ 998 04fe 7D83      		std Y+5,r23
+ 999 0500 8E83      		std Y+6,r24
+ 1000 0502 9F83      		std Y+7,r25
+ 1002               	.LM55:
+ 1003 0504 00C0      		rjmp .L38
+ 1004               	.L39:
+ 1006               	.LM56:
+ 1007 0506 2881      		ld r18,Y
+ 1008 0508 3981      		ldd r19,Y+1
+ 1009 050a 4A81      		ldd r20,Y+2
+ 1010 050c 5B81      		ldd r21,Y+3
+ 1011 050e 2F5F      		subi r18,lo8(-(1))
+ 1012 0510 3F4F      		sbci r19,hi8(-(1))
+ 1013 0512 4F4F      		sbci r20,hlo8(-(1))
+ 1014 0514 5F4F      		sbci r21,hhi8(-(1))
+ 1015 0516 2883      		st Y,r18
+ 1016 0518 3983      		std Y+1,r19
+ 1017 051a 4A83      		std Y+2,r20
+ 1018 051c 5B83      		std Y+3,r21
+ 1019 051e 6050      		subi r22,lo8(-(-1000000000))
+ 1020 0520 7A4C      		sbci r23,hi8(-(-1000000000))
+ 1021 0522 8A49      		sbci r24,hlo8(-(-1000000000))
+ 1022 0524 9B43      		sbci r25,hhi8(-(-1000000000))
+ 1023               	.L38:
+ 1025               	.LM57:
+ 1026 0526 6030      		cpi r22,lo8(1000000000)
+ 1027 0528 2AEC      		ldi r18,hi8(1000000000)
+ 1028 052a 7207      		cpc r23,r18
+ 1029 052c 2AE9      		ldi r18,hlo8(1000000000)
+ 1030 052e 8207      		cpc r24,r18
+ 1031 0530 2BE3      		ldi r18,hhi8(1000000000)
+ 1032 0532 9207      		cpc r25,r18
+ 1033 0534 00F4      		brsh .L39
+ 1034 0536 6C83      		std Y+4,r22
+ 1035 0538 7D83      		std Y+5,r23
+ 1036 053a 8E83      		std Y+6,r24
+ 1037 053c 9F83      		std Y+7,r25
+ 1038               	/* epilogue start */
+ 1040               	.LM58:
+ 1041 053e DF91      		pop r29
+ 1042 0540 CF91      		pop r28
+ 1043 0542 1F91      		pop r17
+ 1044 0544 0F91      		pop r16
+ 1045 0546 FF90      		pop r15
+ 1046 0548 EF90      		pop r14
+ 1047 054a 0895      		ret
+ 1049               	.Lscope8:
+ 1051               		.stabd	78,0,0
+ 1052               		.comm _nrk_signal_list,4,1
+ 1053               		.comm nrk_idle_task_stk,128,1
+ 1054               		.comm nrk_kernel_stk_ptr,2,1
+ 1055               		.comm _nrk_prev_timer_val,1,1
+ 1056               		.comm _nrk_time_trigger,1,1
+ 1057               		.comm app_timer0_callback,2,1
+ 1058               		.comm app_timer0_prescale,1,1
+ 1059               		.comm error_task,1,1
+ 1060               		.comm error_num,1,1
+ 1071               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 nrk_time.c
+     /tmp/ccxZCQCn.s:2      *ABS*:0000003f __SREG__
+     /tmp/ccxZCQCn.s:3      *ABS*:0000003e __SP_H__
+     /tmp/ccxZCQCn.s:4      *ABS*:0000003d __SP_L__
+     /tmp/ccxZCQCn.s:5      *ABS*:00000000 __tmp_reg__
+     /tmp/ccxZCQCn.s:6      *ABS*:00000001 __zero_reg__
+     /tmp/ccxZCQCn.s:133    .text:00000000 nrk_time_sub
+     /tmp/ccxZCQCn.s:326    .text:0000011e nrk_time_add
+     /tmp/ccxZCQCn.s:478    .text:0000020a nrk_time_compact_nanos
+     /tmp/ccxZCQCn.s:542    .text:00000250 nrk_time_set
+     /tmp/ccxZCQCn.s:573    .text:00000272 _nrk_time_to_ticks
+     /tmp/ccxZCQCn.s:690    .text:00000312 _nrk_ticks_to_time
+     /tmp/ccxZCQCn.s:767    .text:00000386 _nrk_time_to_ticks_long
+     /tmp/ccxZCQCn.s:947    .text:0000049e nrk_time_get
+                            *COM*:00000004 _nrk_signal_list
+                            *COM*:00000080 nrk_idle_task_stk
+                            *COM*:00000002 nrk_kernel_stk_ptr
+                            *COM*:00000001 _nrk_prev_timer_val
+                            *COM*:00000001 _nrk_time_trigger
+                            *COM*:00000002 app_timer0_callback
+                            *COM*:00000001 app_timer0_prescale
+                            *COM*:00000001 error_task
+                            *COM*:00000001 error_num
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+nrk_system_time
+__udivmodsi4
+__mulsi3
+_nrk_os_timer_get

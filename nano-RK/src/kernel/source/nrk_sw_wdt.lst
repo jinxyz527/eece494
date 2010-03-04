@@ -1,0 +1,32 @@
+   1               		.file	"nrk_sw_wdt.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.global __do_copy_data
+   8               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 124               		.comm _nrk_signal_list,4,1
+ 125               		.comm nrk_idle_task_stk,128,1
+ 126               		.comm nrk_kernel_stk_ptr,2,1
+ 127               		.comm error_task,1,1
+ 128               		.comm error_num,1,1
+ 135               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 nrk_sw_wdt.c
+     /tmp/ccwZEshA.s:2      *ABS*:0000003f __SREG__
+     /tmp/ccwZEshA.s:3      *ABS*:0000003e __SP_H__
+     /tmp/ccwZEshA.s:4      *ABS*:0000003d __SP_L__
+     /tmp/ccwZEshA.s:5      *ABS*:00000000 __tmp_reg__
+     /tmp/ccwZEshA.s:6      *ABS*:00000001 __zero_reg__
+                            *COM*:00000004 _nrk_signal_list
+                            *COM*:00000080 nrk_idle_task_stk
+                            *COM*:00000002 nrk_kernel_stk_ptr
+                            *COM*:00000001 error_task
+                            *COM*:00000001 error_num
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss

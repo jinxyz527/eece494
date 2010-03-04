@@ -1,0 +1,3538 @@
+   1               		.file	"rt_link.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.global __do_copy_data
+   8               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 154               	.global	rtl_get_tx_done_signal
+ 156               	rtl_get_tx_done_signal:
+ 157               		.stabd	46,0,0
+   1:../../../../nano-RK/src/net/rt_link/rt_link.c **** /******************************************************************************
+   2:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  Nano-RK, a real-time operating system for sensor networks.
+   3:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  Copyright (C) 2007, Real-Time and Multimedia Lab, Carnegie Mellon University
+   4:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  All rights reserved.
+   5:../../../../nano-RK/src/net/rt_link/rt_link.c **** *
+   6:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  This is the Open Source Version of Nano-RK included as part of a Dual
+   7:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  Licensing Model. If you are unsure which license to use please refer to:
+   8:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  http://www.nanork.org/nano-RK/wiki/Licensing
+   9:../../../../nano-RK/src/net/rt_link/rt_link.c **** *
+  10:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  This program is free software: you can redistribute it and/or modify
+  11:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  it under the terms of the GNU General Public License as published by
+  12:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  the Free Software Foundation, version 2.0 of the License.
+  13:../../../../nano-RK/src/net/rt_link/rt_link.c **** *
+  14:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  This program is distributed in the hope that it will be useful,
+  15:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  16:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  17:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  GNU General Public License for more details.
+  18:../../../../nano-RK/src/net/rt_link/rt_link.c **** *
+  19:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  You should have received a copy of the GNU General Public License
+  20:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  21:../../../../nano-RK/src/net/rt_link/rt_link.c **** *
+  22:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  Contributing Authors (specific to this file):
+  23:../../../../nano-RK/src/net/rt_link/rt_link.c **** *  Anthony Rowe
+  24:../../../../nano-RK/src/net/rt_link/rt_link.c **** *******************************************************************************/
+  25:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  26:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <rt_link.h>
+  27:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <rtl_scheduler.h>
+  28:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <rtl_debug.h>
+  29:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <include.h>
+  30:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <ulib.h>
+  31:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <avr/sleep.h>
+  32:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <avr/wdt.h>
+  33:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <avr/eeprom.h>
+  34:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <stdio.h>
+  35:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <avr/interrupt.h>
+  36:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <nrk.h>
+  37:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <nrk_events.h>
+  38:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <nrk_timer.h>
+  39:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <nrk_error.h>
+  40:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <rtl_defs.h>
+  41:../../../../nano-RK/src/net/rt_link/rt_link.c **** #include <stdlib.h>
+  42:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  43:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  44:../../../../nano-RK/src/net/rt_link/rt_link.c ****  
+  45:../../../../nano-RK/src/net/rt_link/rt_link.c **** //#define RTL_DEBUG
+  46:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  47:../../../../nano-RK/src/net/rt_link/rt_link.c **** //#define LED_DEBUG
+  48:../../../../nano-RK/src/net/rt_link/rt_link.c ****  #define LED_SLOT_DEBUG
+  49:../../../../nano-RK/src/net/rt_link/rt_link.c **** // #define GPIO_SLOT_DEBUG
+  50:../../../../nano-RK/src/net/rt_link/rt_link.c **** //#define TXT_DEBUG
+  51:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  52:../../../../nano-RK/src/net/rt_link/rt_link.c **** //#define GPIO_TX_DEBUG
+  53:../../../../nano-RK/src/net/rt_link/rt_link.c **** //#define GPIO_RX_DEBUG
+  54:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  55:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  56:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  57:../../../../nano-RK/src/net/rt_link/rt_link.c **** volatile uint16_t global_slot;
+  58:../../../../nano-RK/src/net/rt_link/rt_link.c **** volatile uint16_t current_global_slot;
+  59:../../../../nano-RK/src/net/rt_link/rt_link.c **** volatile uint16_t global_cycle;
+  60:../../../../nano-RK/src/net/rt_link/rt_link.c **** uint16_t last_sync_slot;
+  61:../../../../nano-RK/src/net/rt_link/rt_link.c **** uint16_t slot_start_time;
+  62:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  63:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_tx_done_signal;
+  64:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_rx_pkt_signal;
+  65:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  66:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_get_tx_done_signal()
+  67:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 159               	.LM0:
+ 160               	.LFBB1:
+ 161               	/* prologue: function */
+ 162               	/* frame size = 0 */
+ 163               	.LBB22:
+ 164               	.LBB23:
+  68:../../../../nano-RK/src/net/rt_link/rt_link.c ****   if(rtl_ready()==NRK_ERROR) return NRK_ERROR;
+  69:../../../../nano-RK/src/net/rt_link/rt_link.c ****   return rtl_tx_done_signal;
+  70:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+  71:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  72:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  73:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_get_rx_pkt_signal()
+  74:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+  75:../../../../nano-RK/src/net/rt_link/rt_link.c ****   if(rtl_ready()==NRK_ERROR) return NRK_ERROR;
+  76:../../../../nano-RK/src/net/rt_link/rt_link.c ****   return rtl_rx_pkt_signal;
+  77:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+  78:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  79:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  80:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_wait_until_tx_done (uint8_t slot)
+  81:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+  82:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  83:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_signal_register(rtl_tx_done_signal);
+  84:../../../../nano-RK/src/net/rt_link/rt_link.c ****     while (rtl_tx_pkt_check(slot) != 0)
+  85:../../../../nano-RK/src/net/rt_link/rt_link.c ****         nrk_event_wait (SIG(rtl_tx_done_signal));
+  86:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return NRK_OK;
+  87:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+  88:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  89:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_wait_until_rx_pkt ()
+  90:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+  91:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_signal_register(rtl_rx_pkt_signal);
+  92:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (rtl_rx_pkt_check() != 0)
+  93:../../../../nano-RK/src/net/rt_link/rt_link.c ****         return NRK_OK;
+  94:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_event_wait (SIG(rtl_rx_pkt_signal));
+  95:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return NRK_OK;
+  96:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+  97:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+  98:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_wait_until_rx_or_tx ()
+  99:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 100:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_signal_register(rtl_rx_pkt_signal);
+ 101:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_signal_register(rtl_tx_done_signal);
+ 102:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_event_wait (SIG(rtl_rx_pkt_signal) | SIG(rtl_tx_done_signal));
+ 103:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return NRK_OK;
+ 104:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 105:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 106:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 107:../../../../nano-RK/src/net/rt_link/rt_link.c **** uint16_t rtl_get_global_slot ()
+ 108:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 109:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint16_t slot;
+ 110:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t v;
+ 111:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_time_t ct;
+ 112:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 113:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_time_get (&ct);
+ 114:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 115:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //printf( "ct %lu %lu\n",ct.secs,ct.nano_secs );
+ 116:../../../../nano-RK/src/net/rt_link/rt_link.c ****     v = nrk_time_sub (&ct, ct, last_slot_time);
+ 117:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // FIXME: This will overflow at 4 seconds!  Could be 6 seconds...
+ 118:../../../../nano-RK/src/net/rt_link/rt_link.c ****     ct.nano_secs += (uint32_t) NANOS_PER_SEC *ct.secs;  // it is 32 bit, so it can take the worst c
+ 119:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //slot=ct.nano_secs / ((uint32_t)RTL_SLOT_SIZE_MS*(uint32_t)NANOS_PER_MS);
+ 120:../../../../nano-RK/src/net/rt_link/rt_link.c ****     slot =
+ 121:../../../../nano-RK/src/net/rt_link/rt_link.c ****         ct.nano_secs / ((uint32_t) RTL_SLOT_TIME_US *
+ 122:../../../../nano-RK/src/net/rt_link/rt_link.c ****                         (uint32_t) NANOS_PER_US);
+ 123:../../../../nano-RK/src/net/rt_link/rt_link.c ****     slot += last_slot;
+ 124:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return slot;
+ 125:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 126:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 127:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_wait_until_global_slot (uint16_t slot)
+ 128:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 129:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return NRK_ERROR;
+ 130:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 131:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 132:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_ready ()
+ 133:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 134:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (_rtl_ready ==  1)
+ 166               	.LM1:
+ 167 0000 8091 0000 		lds r24,_rtl_ready
+ 168 0004 8130      		cpi r24,lo8(1)
+ 169 0006 01F0      		breq .L2
+ 170 0008 8FEF      		ldi r24,lo8(-1)
+ 171 000a 0895      		ret
+ 172               	.L2:
+ 173               	.LBE23:
+ 174               	.LBE22:
+ 176               	.LM2:
+ 177 000c 8091 0000 		lds r24,rtl_tx_done_signal
+ 179               	.LM3:
+ 180 0010 0895      		ret
+ 182               	.Lscope1:
+ 184               		.stabd	78,0,0
+ 186               	.global	rtl_get_rx_pkt_signal
+ 188               	rtl_get_rx_pkt_signal:
+ 189               		.stabd	46,0,0
+ 191               	.LM4:
+ 192               	.LFBB2:
+ 193               	/* prologue: function */
+ 194               	/* frame size = 0 */
+ 195               	.LBB24:
+ 196               	.LBB25:
+ 198               	.LM5:
+ 199 0012 8091 0000 		lds r24,_rtl_ready
+ 200 0016 8130      		cpi r24,lo8(1)
+ 201 0018 01F0      		breq .L7
+ 202 001a 8FEF      		ldi r24,lo8(-1)
+ 203 001c 0895      		ret
+ 204               	.L7:
+ 205               	.LBE25:
+ 206               	.LBE24:
+ 208               	.LM6:
+ 209 001e 8091 0000 		lds r24,rtl_rx_pkt_signal
+ 211               	.LM7:
+ 212 0022 0895      		ret
+ 214               	.Lscope2:
+ 216               		.stabd	78,0,0
+ 219               	.global	rtl_wait_until_global_slot
+ 221               	rtl_wait_until_global_slot:
+ 222               		.stabd	46,0,0
+ 224               	.LM8:
+ 225               	.LFBB3:
+ 226               	/* prologue: function */
+ 227               	/* frame size = 0 */
+ 229               	.LM9:
+ 230 0024 8FEF      		ldi r24,lo8(-1)
+ 231               	/* epilogue start */
+ 232 0026 0895      		ret
+ 234               	.Lscope3:
+ 236               		.stabd	78,0,0
+ 238               	.global	rtl_ready
+ 240               	rtl_ready:
+ 241               		.stabd	46,0,0
+ 243               	.LM10:
+ 244               	.LFBB4:
+ 245               	/* prologue: function */
+ 246               	/* frame size = 0 */
+ 248               	.LM11:
+ 249 0028 8091 0000 		lds r24,_rtl_ready
+ 250 002c 8130      		cpi r24,lo8(1)
+ 251 002e 01F0      		breq .L13
+ 252 0030 8FEF      		ldi r24,lo8(-1)
+ 253 0032 0895      		ret
+ 254               	.L13:
+ 255 0034 81E0      		ldi r24,lo8(1)
+ 135:../../../../nano-RK/src/net/rt_link/rt_link.c ****         return NRK_OK;
+ 136:../../../../nano-RK/src/net/rt_link/rt_link.c ****     else
+ 137:../../../../nano-RK/src/net/rt_link/rt_link.c ****         return NRK_ERROR;
+ 138:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 257               	.LM12:
+ 258 0036 0895      		ret
+ 260               	.Lscope4:
+ 262               		.stabd	78,0,0
+ 267               	.global	rtl_rx_pkt_get
+ 269               	rtl_rx_pkt_get:
+ 270               		.stabd	46,0,0
+ 139:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 140:../../../../nano-RK/src/net/rt_link/rt_link.c **** uint8_t* rtl_rx_pkt_get (uint8_t *len, int8_t *rssi,uint8_t *slot)
+ 141:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 272               	.LM13:
+ 273               	.LFBB5:
+ 274 0038 CF93      		push r28
+ 275 003a DF93      		push r29
+ 276               	/* prologue: function */
+ 277               	/* frame size = 0 */
+ 278 003c FC01      		movw r30,r24
+ 279 003e DB01      		movw r26,r22
+ 280 0040 EA01      		movw r28,r20
+ 142:../../../../nano-RK/src/net/rt_link/rt_link.c **** if(rtl_rx_pkt_check()==0)
+ 282               	.LM14:
+ 283 0042 8091 0000 		lds r24,rtl_rx_data_ready
+ 284 0046 8823      		tst r24
+ 285 0048 01F4      		brne .L17
+ 143:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	{
+ 144:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	*len=0;
+ 287               	.LM15:
+ 288 004a 1082      		st Z,__zero_reg__
+ 145:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	*rssi=0;
+ 290               	.LM16:
+ 291 004c 1C92      		st X,__zero_reg__
+ 146:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	*slot=0;
+ 293               	.LM17:
+ 294 004e 1882      		st Y,__zero_reg__
+ 295 0050 20E0      		ldi r18,lo8(0)
+ 296 0052 30E0      		ldi r19,hi8(0)
+ 147:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	return NULL;
+ 298               	.LM18:
+ 299 0054 00C0      		rjmp .L18
+ 300               	.L17:
+ 148:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	}
+ 149:../../../../nano-RK/src/net/rt_link/rt_link.c ****   *len=rtl_rfRxInfo.length;
+ 302               	.LM19:
+ 303 0056 8091 0000 		lds r24,rtl_rfRxInfo+3
+ 304 005a 8083      		st Z,r24
+ 150:../../../../nano-RK/src/net/rt_link/rt_link.c ****   *rssi=rtl_rfRxInfo.rssi;
+ 306               	.LM20:
+ 307 005c 8091 0000 		lds r24,rtl_rfRxInfo+8
+ 308 0060 8C93      		st X,r24
+ 151:../../../../nano-RK/src/net/rt_link/rt_link.c ****   *slot=rtl_rx_slot;
+ 310               	.LM21:
+ 311 0062 8091 0000 		lds r24,rtl_rx_slot
+ 312 0066 8883      		st Y,r24
+ 152:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 153:../../../../nano-RK/src/net/rt_link/rt_link.c **** return rtl_rfRxInfo.pPayload;
+ 314               	.LM22:
+ 315 0068 2091 0000 		lds r18,rtl_rfRxInfo+5
+ 316 006c 3091 0000 		lds r19,(rtl_rfRxInfo+5)+1
+ 317               	.L18:
+ 154:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 319               	.LM23:
+ 320 0070 C901      		movw r24,r18
+ 321               	/* epilogue start */
+ 322 0072 DF91      		pop r29
+ 323 0074 CF91      		pop r28
+ 324 0076 0895      		ret
+ 326               	.Lscope5:
+ 328               		.stabd	78,0,0
+ 330               	.global	rtl_get_slot
+ 332               	rtl_get_slot:
+ 333               		.stabd	46,0,0
+ 155:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 156:../../../../nano-RK/src/net/rt_link/rt_link.c **** uint16_t rtl_get_slot ()
+ 157:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 335               	.LM24:
+ 336               	.LFBB6:
+ 337               	/* prologue: function */
+ 338               	/* frame size = 0 */
+ 158:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return current_global_slot;
+ 340               	.LM25:
+ 341 0078 2091 0000 		lds r18,current_global_slot
+ 342 007c 3091 0000 		lds r19,(current_global_slot)+1
+ 159:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 344               	.LM26:
+ 345 0080 C901      		movw r24,r18
+ 346               	/* epilogue start */
+ 347 0082 0895      		ret
+ 349               	.Lscope6:
+ 351               		.stabd	78,0,0
+ 353               	.global	rtl_sync_status
+ 355               	rtl_sync_status:
+ 356               		.stabd	46,0,0
+ 160:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 161:../../../../nano-RK/src/net/rt_link/rt_link.c **** /**
+ 162:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rtl_sync_status()
+ 163:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 164:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * Return: 1 if sync is good, 0 if sync has failed
+ 165:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 166:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This function returns if the synchronization is good.  _rtl_sync_ok
+ 167:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * is set inside the interrupt based upon the time between the last cycle
+ 168:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * and the sync pulse. 
+ 169:../../../../nano-RK/src/net/rt_link/rt_link.c ****  */
+ 170:../../../../nano-RK/src/net/rt_link/rt_link.c **** uint8_t rtl_sync_status ()
+ 171:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 358               	.LM27:
+ 359               	.LFBB7:
+ 360               	/* prologue: function */
+ 361               	/* frame size = 0 */
+ 172:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return _rtl_sync_ok;
+ 173:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 363               	.LM28:
+ 364 0084 8091 0000 		lds r24,_rtl_sync_ok
+ 365               	/* epilogue start */
+ 366 0088 0895      		ret
+ 368               	.Lscope7:
+ 370               		.stabd	78,0,0
+ 372               	.global	rtl_check_abs_tx_status
+ 374               	rtl_check_abs_tx_status:
+ 375               		.stabd	46,0,0
+ 174:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 175:../../../../nano-RK/src/net/rt_link/rt_link.c **** /**
+ 176:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rtl_check_abs_tx_status()
+ 177:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 178:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This function allows an upper layer to check if the abs TX packet
+ 179:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * has been sent.  This is only for the single absolute packet. 
+ 180:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 181:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * Returns: 1 if the packet was sent, 0 otherwise
+ 182:../../../../nano-RK/src/net/rt_link/rt_link.c ****  */
+ 183:../../../../nano-RK/src/net/rt_link/rt_link.c **** uint8_t rtl_check_abs_tx_status ()
+ 184:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 377               	.LM29:
+ 378               	.LFBB8:
+ 379               	/* prologue: function */
+ 380               	/* frame size = 0 */
+ 185:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return rtl_abs_tx_ready;
+ 186:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 382               	.LM30:
+ 383 008a 8091 0000 		lds r24,rtl_abs_tx_ready
+ 384               	/* epilogue start */
+ 385 008e 0895      		ret
+ 387               	.Lscope8:
+ 389               		.stabd	78,0,0
+ 391               	.global	rtl_rx_pkt_release
+ 393               	rtl_rx_pkt_release:
+ 394               		.stabd	46,0,0
+ 187:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 188:../../../../nano-RK/src/net/rt_link/rt_link.c **** /**
+ 189:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rtl_tx_abs_packet()
+ 190:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 191:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This function sends a single packet at an arbitrary slot
+ 192:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * over the entire TDMA frame. 
+ 193:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 194:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * Arguments: RF_TX_INFO *tx is a pointer to a transmit structure, this structure
+ 195:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *            must have a valid pPayload pointer to the real packet.
+ 196:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *            uint16_t abs_slot is the number of the absolute slot that will tx.
+ 197:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * 
+ 198:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * Return: returns 1 upon success, and 0 on failure due to overlaping TX slot
+ 199:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 200:../../../../nano-RK/src/net/rt_link/rt_link.c ****  */
+ 201:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_tx_abs_pkt (uint8_t *buf, uint8_t len, uint16_t abs_slot)
+ 202:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 203:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t slot;
+ 204:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint32_t slot_mask;
+ 205:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 206:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // Make sure this isn't already a TX slot
+ 207:../../../../nano-RK/src/net/rt_link/rt_link.c ****     slot = abs_slot % 32;
+ 208:../../../../nano-RK/src/net/rt_link/rt_link.c ****     slot_mask = ((uint32_t) 1) << slot;
+ 209:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (slot_mask & rtl_tdma_tx_mask)
+ 210:../../../../nano-RK/src/net/rt_link/rt_link.c ****         return 0;
+ 211:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 212:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_tx_info[TDMA_FRAME_SLOTS+1].pPayload= buf; 
+ 213:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_tx_info[TDMA_FRAME_SLOTS+1].length= len; 
+ 214:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rtl_rfTxInfo[TDMA_FRAME_SLOTS + 1] = tx;    // last element for abs slot 
+ 215:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_abs_tx_slot = abs_slot;
+ 216:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_set_abs_wakeup (abs_slot, 0);   // schedule once, but don't repeat
+ 217:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_abs_tx_ready = 1;
+ 218:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return 1;
+ 219:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 220:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 221:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 222:../../../../nano-RK/src/net/rt_link/rt_link.c **** /**
+ 223:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rtl_tx_packet()
+ 224:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 225:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This function associates a slot with a particular packet that needs
+ 226:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * to be sent. 
+ 227:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * 
+ 228:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * Arguments: RF_TX_INFO *tx is a pointer to a transmit structure, this structure
+ 229:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *            must have a valid pPayload pointer to the real packet.
+ 230:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *            uint8_t slot is the value of the tx slot (starting from 0)
+ 231:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 232:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * Return:  currently always returns 1
+ 233:../../../../nano-RK/src/net/rt_link/rt_link.c ****  */
+ 234:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_tx_pkt (uint8_t *tx_buf, uint8_t len, uint8_t slot)
+ 235:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 236:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 237:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (slot == RTL_CONTENTION) {
+ 238:../../../../nano-RK/src/net/rt_link/rt_link.c ****         slot = rand () % _rtl_contention_slots;
+ 239:../../../../nano-RK/src/net/rt_link/rt_link.c ****         slot = (TDMA_FRAME_SLOTS - slot - 1);
+ 240:../../../../nano-RK/src/net/rt_link/rt_link.c ****         _rtl_contention_pending = 1;
+ 241:../../../../nano-RK/src/net/rt_link/rt_link.c ****     }
+ 242:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_tx_info[slot].pPayload = tx_buf;    // pass le pointer
+ 243:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_tx_info[slot].length = len;    // pass le pointer
+ 244:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_tx_data_ready |= ((uint32_t) 1 << slot);        // set the flag
+ 245:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return 1;
+ 246:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 247:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 248:../../../../nano-RK/src/net/rt_link/rt_link.c **** /**
+ 249:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rtl_release_rx_packet()
+ 250:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 251:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This function releases the link layer's hold on the rx buffer.
+ 252:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This must be called after a packet is received before a new
+ 253:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * packet can be buffered!  This should ideally be done by the
+ 254:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * network layer.
+ 255:../../../../nano-RK/src/net/rt_link/rt_link.c ****  */
+ 256:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_rx_pkt_release()
+ 257:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 396               	.LM31:
+ 397               	.LFBB9:
+ 398               	/* prologue: function */
+ 399               	/* frame size = 0 */
+ 258:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rx_data_ready = 0;
+ 401               	.LM32:
+ 402 0090 1092 0000 		sts rtl_rx_data_ready,__zero_reg__
+ 403               	/* epilogue start */
+ 259:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 405               	.LM33:
+ 406 0094 0895      		ret
+ 408               	.Lscope9:
+ 410               		.stabd	78,0,0
+ 413               	.global	rtl_tx_pkt_check
+ 415               	rtl_tx_pkt_check:
+ 416               		.stabd	46,0,0
+ 260:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 261:../../../../nano-RK/src/net/rt_link/rt_link.c **** /**
+ 262:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rtl_check_tx_status()
+ 263:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 264:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This function allows an upper layer to check if a TX packet
+ 265:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * has been sent.  For instance, you would first send a packet with
+ 266:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rtl_tx_packet(&myTX, 8 );
+ 267:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * and then you could sleep or do more work, and eventually check
+ 268:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * done=rtl_check_tx_status(8);
+ 269:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * to see if the packet had been sent by the interrupt routine.
+ 270:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 271:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * Returns: 1 if the packet was sent, 0 otherwise
+ 272:../../../../nano-RK/src/net/rt_link/rt_link.c ****  */
+ 273:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_tx_pkt_check(uint8_t slot)
+ 274:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 418               	.LM34:
+ 419               	.LFBB10:
+ 420               	/* prologue: function */
+ 421               	/* frame size = 0 */
+ 275:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (slot == RTL_CONTENTION) {
+ 423               	.LM35:
+ 424 0096 8132      		cpi r24,lo8(33)
+ 425 0098 01F4      		brne .L29
+ 276:../../../../nano-RK/src/net/rt_link/rt_link.c ****         return _rtl_contention_pending;
+ 427               	.LM36:
+ 428 009a 8091 0000 		lds r24,_rtl_contention_pending
+ 429 009e 0895      		ret
+ 430               	.L29:
+ 431 00a0 2091 0000 		lds r18,rtl_tx_data_ready
+ 432 00a4 3091 0000 		lds r19,(rtl_tx_data_ready)+1
+ 433 00a8 4091 0000 		lds r20,(rtl_tx_data_ready)+2
+ 434 00ac 5091 0000 		lds r21,(rtl_tx_data_ready)+3
+ 435 00b0 00C0      		rjmp 2f
+ 436 00b2 5695      	1:	lsr r21
+ 437 00b4 4795      		ror r20
+ 438 00b6 3795      		ror r19
+ 439 00b8 2795      		ror r18
+ 440 00ba 8A95      	2:	dec r24
+ 441 00bc 02F4      		brpl 1b
+ 442 00be 822F      		mov r24,r18
+ 443 00c0 8170      		andi r24,lo8(1)
+ 277:../../../../nano-RK/src/net/rt_link/rt_link.c ****     }
+ 278:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if ((rtl_tx_data_ready & ((uint32_t) 1 << slot)) != 0)
+ 279:../../../../nano-RK/src/net/rt_link/rt_link.c ****         return 1;
+ 280:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return 0;
+ 281:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 445               	.LM37:
+ 446 00c2 0895      		ret
+ 448               	.Lscope10:
+ 450               		.stabd	78,0,0
+ 452               	.global	rtl_rx_pkt_check
+ 454               	rtl_rx_pkt_check:
+ 455               		.stabd	46,0,0
+ 282:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 283:../../../../nano-RK/src/net/rt_link/rt_link.c **** /**
+ 284:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rtl_check_rx_status()
+ 285:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 286:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This function returns if there is a packet in the link layer
+ 287:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rx buffer.  Once a packet has been received, it should be quickly
+ 288:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * processed or moved and then rtl_release_rx_packet() should be called. 
+ 289:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rtl_release_rx_packet() then resets the value of rtl_check_rx_status()
+ 290:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 291:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * Returns: 1 if a new packet was received, 0 otherwise
+ 292:../../../../nano-RK/src/net/rt_link/rt_link.c ****  */
+ 293:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_rx_pkt_check()
+ 294:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 457               	.LM38:
+ 458               	.LFBB11:
+ 459               	/* prologue: function */
+ 460               	/* frame size = 0 */
+ 295:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return rtl_rx_data_ready;
+ 296:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 462               	.LM39:
+ 463 00c4 8091 0000 		lds r24,rtl_rx_data_ready
+ 464               	/* epilogue start */
+ 465 00c8 0895      		ret
+ 467               	.Lscope11:
+ 469               		.stabd	78,0,0
+ 472               	.global	rtl_set_cycle_callback
+ 474               	rtl_set_cycle_callback:
+ 475               		.stabd	46,0,0
+ 297:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 298:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_set_channel (uint8_t chan)
+ 299:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 300:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_param.channel = chan;
+ 301:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rf_set_channel (chan);
+ 302:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 303:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 304:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 305:../../../../nano-RK/src/net/rt_link/rt_link.c **** uint8_t _rtl_rx_sync ()
+ 306:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 307:../../../../nano-RK/src/net/rt_link/rt_link.c ****     int8_t n;
+ 308:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t tmp_token;
+ 309:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint16_t timeout,start_lat;
+ 310:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint16_t timer;
+ 311:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t tdma_start_tick;
+ 312:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t battery_save_cnt;
+ 313:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t last_nrk_tick;
+ 314:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint16_t elapsed_time;
+ 315:../../../../nano-RK/src/net/rt_link/rt_link.c ****     int16_t tmp_offset;
+ 316:../../../../nano-RK/src/net/rt_link/rt_link.c ****     volatile uint16_t sfd_start_time;
+ 317:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 318:../../../../nano-RK/src/net/rt_link/rt_link.c ****   //  DISABLE_GLOBAL_INT ();
+ 319:../../../../nano-RK/src/net/rt_link/rt_link.c ****     timer=0;
+ 320:../../../../nano-RK/src/net/rt_link/rt_link.c ****     battery_save_cnt=0;
+ 321:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 322:../../../../nano-RK/src/net/rt_link/rt_link.c **** while(1)
+ 323:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 324:../../../../nano-RK/src/net/rt_link/rt_link.c **** rtl_rfRxInfo.pPayload[GLOBAL_SLOT]=0xFF;
+ 325:../../../../nano-RK/src/net/rt_link/rt_link.c **** rtl_rfRxInfo.pPayload[GLOBAL_SLOT+1]=0xFF;
+ 326:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef LED_DEBUG
+ 327:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_led_set(1);
+ 328:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 329:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef GPIO_RX_DEBUG
+ 330:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_gpio_set(NRK_DEBUG_1);
+ 331:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 332:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 333:../../../../nano-RK/src/net/rt_link/rt_link.c **** /*
+ 334:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // prints out a measurement of OS Tick
+ 335:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_int_disable();
+ 336:../../../../nano-RK/src/net/rt_link/rt_link.c ****     last_nrk_tick=_nrk_get_raw_timer();
+ 337:../../../../nano-RK/src/net/rt_link/rt_link.c ****     while(1)
+ 338:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	{
+ 339:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	last_nrk_tick=_nrk_get_raw_timer();
+ 340:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	while(last_nrk_tick==_nrk_get_raw_timer()); 
+ 341:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	_nrk_stop_high_speed_timer();
+ 342:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	_nrk_reset_high_speed_timer();
+ 343:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	_nrk_start_high_speed_timer();
+ 344:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	last_nrk_tick=_nrk_get_raw_timer();
+ 345:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	while(last_nrk_tick==_nrk_get_raw_timer()); 
+ 346:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		_nrk_stop_high_speed_timer();
+ 347:../../../../nano-RK/src/net/rt_link/rt_link.c ****     		tick_to_slot_offset=_nrk_get_high_speed_timer();
+ 348:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		printf( "time = %d\r\n",tick_to_slot_offset );
+ 349:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 350:../../../../nano-RK/src/net/rt_link/rt_link.c **** */
+ 351:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 352:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rf_set_rx (&rtl_rfRxInfo, rtl_param.channel);       // sets rx buffer and channel 
+ 353:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rf_polling_rx_on ();
+ 354:../../../../nano-RK/src/net/rt_link/rt_link.c ****     n = 0;
+ 355:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_sync_ok = 0;
+ 356:../../../../nano-RK/src/net/rt_link/rt_link.c ****     last_nrk_tick=0;  // should be 0 going in
+ 357:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //_nrk_prev_timer_val=250;
+ 358:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _nrk_set_next_wakeup(250);
+ 359:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //timeout=200;
+ 360:../../../../nano-RK/src/net/rt_link/rt_link.c ****     while ((n = rf_rx_check_sfd()) == 0) {
+ 361:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// every OS tick 
+ 362:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	if(last_nrk_tick!=_nrk_os_timer_get()) 
+ 363:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		{
+ 364:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//_nrk_stop_high_speed_timer();
+ 365:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//_nrk_reset_high_speed_timer();
+ 366:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//_nrk_start_high_speed_timer();
+ 367:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		last_nrk_tick=_nrk_os_timer_get();
+ 368:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	   	timer++;
+ 369:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	   	if(timer>RTL_TOKEN_TIMEOUT) 
+ 370:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			{
+ 371:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			timer=0;
+ 372:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			//printf( "token timeout! %d\r\n",battery_save_cnt );
+ 373:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			_rtl_time_token=0;
+ 374:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			battery_save_cnt++;
+ 375:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			if(battery_save_cnt>RTL_BATTERY_SAVE_TIMEOUT)
+ 376:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				{
+ 377:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				battery_save_cnt=0;
+ 378:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				nrk_battery_save();
+ 379:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				}
+ 380:../../../../nano-RK/src/net/rt_link/rt_link.c ****            		break;
+ 381:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			} 
+ 382:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		}
+ 383:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 384:../../../../nano-RK/src/net/rt_link/rt_link.c ****     }
+ 385:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 386:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // nrk_kprintf( PSTR("got sfd\r\n"));
+ 387:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // Wait measured time until next slot
+ 388:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // reset OS timer
+ 389:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 390:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _nrk_high_speed_timer_reset();
+ 391:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // capture SFD transition with high speed timer
+ 392:../../../../nano-RK/src/net/rt_link/rt_link.c ****     sfd_start_time=_nrk_high_speed_timer_get();
+ 393:../../../../nano-RK/src/net/rt_link/rt_link.c ****     tdma_start_tick=_nrk_os_timer_get();
+ 394:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //nrk_gpio_set(NRK_DEBUG_1);
+ 395:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 396:../../../../nano-RK/src/net/rt_link/rt_link.c ****     timeout = tdma_start_tick+4;
+ 397:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // an interrupt could happen in here and mess things up
+ 398:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (n != 0) {
+ 399:../../../../nano-RK/src/net/rt_link/rt_link.c ****         n = 0;
+ 400:../../../../nano-RK/src/net/rt_link/rt_link.c ****         // Packet on its way
+ 401:../../../../nano-RK/src/net/rt_link/rt_link.c ****         while ((n = rf_polling_rx_packet ()) == 0) {
+ 402:../../../../nano-RK/src/net/rt_link/rt_link.c ****             if (_nrk_os_timer_get () > timeout)
+ 403:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		{
+ 404:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//nrk_kprintf( PSTR("Pkt timed out\r\n") );
+ 405:../../../../nano-RK/src/net/rt_link/rt_link.c ****                 break;          // huge timeout as failsafe
+ 406:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		}
+ 407:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+ 408:../../../../nano-RK/src/net/rt_link/rt_link.c ****     }
+ 409:../../../../nano-RK/src/net/rt_link/rt_link.c ****     
+ 410:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rf_rx_off ();
+ 411:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (n == 1 && rtl_rfRxInfo.length>0) {
+ 412:../../../../nano-RK/src/net/rt_link/rt_link.c ****         // CRC and checksum passed
+ 413:../../../../nano-RK/src/net/rt_link/rt_link.c ****         uint8_t explicit_sync_pkt;
+ 414:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	rtl_rx_data_ready = 1;
+ 415:../../../../nano-RK/src/net/rt_link/rt_link.c ****         //rtl_rx_slot = 0;
+ 416:../../../../nano-RK/src/net/rt_link/rt_link.c ****         global_slot = (volatile)rtl_rfRxInfo.pPayload[GLOBAL_SLOT];
+ 417:../../../../nano-RK/src/net/rt_link/rt_link.c ****         global_slot <<= 8;
+ 418:../../../../nano-RK/src/net/rt_link/rt_link.c ****         global_slot |= (volatile)rtl_rfRxInfo.pPayload[GLOBAL_SLOT + 1];
+ 419:../../../../nano-RK/src/net/rt_link/rt_link.c ****         //global_slot++;
+ 420:../../../../nano-RK/src/net/rt_link/rt_link.c ****         tmp_token= 0x7F & ((volatile)rtl_rfRxInfo.pPayload[TIME_SYNC_TOKEN]);
+ 421:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	//printf( "%d: ",global_slot );
+ 422:../../../../nano-RK/src/net/rt_link/rt_link.c ****         //printf ("sync slot %d %d\r\n", global_slot, rtl_rfRxInfo.length);
+ 423:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// Time Sync Token goes to 127 since MSB is the explicit sync flag
+ 424:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// After 110, assume packets were dropped and try to catch the wrap
+ 425:../../../../nano-RK/src/net/rt_link/rt_link.c ****         // around case.
+ 426:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	//if((global_slot%32)!=1)
+ 427:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	//printf( "token %d %d\r\n",tmp_token,_rtl_time_token);
+ 428:../../../../nano-RK/src/net/rt_link/rt_link.c ****       
+ 429:../../../../nano-RK/src/net/rt_link/rt_link.c ****         // check if this should be just greater than! 
+ 430:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	if(tmp_token>_rtl_time_token || (_rtl_time_token>110 && tmp_token<10))
+ 431:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		{
+ 432:../../../../nano-RK/src/net/rt_link/rt_link.c ****     		rtl_rx_slot = (global_slot ) % 32;
+ 433:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		// only acccept sync if the token is greater than yours
+ 434:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		if((rtl_rfRxInfo.pPayload[TIME_SYNC_TOKEN]&0x80)==0 )
+ 435:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			{
+ 436:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			// Got normal packet 
+ 437:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			// if we got a good packet, send the signal to
+ 438:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			// the application
+ 439:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 440:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			// Check if we are supposed to RX on this slot, or if it was an overheard sync slot with data
+ 441:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			// If it had data but not for me, ignore it
+ 442:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			if((((uint32_t)1<<rtl_rx_slot) & rtl_tdma_rx_mask)==(uint32_t)0)
+ 443:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				rtl_rx_pkt_release(); 
+ 444:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			else
+ 445:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				nrk_event_signal (rtl_rx_pkt_signal);
+ 446:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			}
+ 447:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		// If it is a time sync packet, then release it
+ 448:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		// so it doesn't block a buffer...
+ 449:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		else { 
+ 450:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			// Explicit Sync
+ 451:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			rtl_rx_pkt_release(); 
+ 452:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//	nrk_event_signal (SIG(RTL_RX_PKT_EVENT));
+ 453:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 454:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		}
+ 455:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		// Got a good signal...
+ 456:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		break;
+ 457:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		} 
+ 458:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		/*else 
+ 459:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		{
+ 460:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			nrk_kprintf( PSTR("Bad token\r\n") ); 
+ 461:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			printf( "tmp %d rtl %d\r\n",tmp_token,_rtl_time_token );
+ 462:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		}*/
+ 463:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 464:../../../../nano-RK/src/net/rt_link/rt_link.c ****     } //else printf( "Error n=%d %d\r\n", n, rtl_rfRxInfo.length);
+ 465:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 466:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 467:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef LED_DEBUG
+ 468:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_led_clr(1);
+ 469:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 470:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	 
+ 471:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rx_slot = (global_slot) % 32;
+ 472:../../../../nano-RK/src/net/rt_link/rt_link.c ****     current_global_slot = global_slot-1;
+ 473:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //printf( "Got sync token %d\r\n",tmp_token ); 
+ 474:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //printf( "sync slot %u\r\n",global_slot); 
+ 475:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // Start new time token cycle
+ 476:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // Just in case _rtl_abs_match was not called
+ 477:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_time_token_status=RTL_TOKEN_NOT_SENT;
+ 478:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	
+ 479:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_time_token=tmp_token;
+ 480:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_sync_ok = 1;
+ 481:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_clr_abs_wakeup (last_sync_slot);
+ 482:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 483:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 484:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 485:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if(global_slot>=MAX_SLOTS || global_slot<2)
+ 486:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	last_sync_slot=MAX_SLOTS-2;
+ 487:../../../../nano-RK/src/net/rt_link/rt_link.c ****     else
+ 488:../../../../nano-RK/src/net/rt_link/rt_link.c ****     	last_sync_slot = global_slot-2;  // slot before real last sync slot
+ 489:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// Must wake up slot before sync slot so that you can schedule
+ 490:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// a wakeup 1 OS tick earlier for the actual sync slot.
+ 491:../../../../nano-RK/src/net/rt_link/rt_link.c ****   /* 
+ 492:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if(last_sync_slot%32>(TDMA_FRAME_SLOTS-_rtl_contention_slots))
+ 493:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	{
+ 494:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// Got sync in contention slot, so set next wakeup before 
+ 495:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// that contention period
+ 496:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	printf( "last_sync %d %d->",last_sync_slot,last_sync_slot%32 );	
+ 497:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	last_sync_slot=last_sync_slot-(last_sync_slot%32-(TDMA_FRAME_SLOTS-_rtl_contention_slots))-2;
+ 498:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	printf( " %d\r\n",last_sync_slot );	
+ 499:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	} 
+ 500:../../../../nano-RK/src/net/rt_link/rt_link.c **** */
+ 501:../../../../nano-RK/src/net/rt_link/rt_link.c ****      rtl_set_abs_wakeup (last_sync_slot, 0);
+ 502:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_clear_sched_cache ();
+ 503:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef GPIO_RX_DEBUG
+ 504:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_gpio_clr(NRK_DEBUG_1);
+ 505:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 506:../../../../nano-RK/src/net/rt_link/rt_link.c ****    // DISABLE_GLOBAL_INT ();
+ 507:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 508:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 509:../../../../nano-RK/src/net/rt_link/rt_link.c ****    // ENABLE_GLOBAL_INT ();
+ 510:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //tmp_token=_nrk_get_raw_timer();
+ 511:../../../../nano-RK/src/net/rt_link/rt_link.c **** //    printf( "tt=%d et=%d %d\r\n",tmp_token,elapsed_time,tick_to_slot_offset );	
+ 512:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //printf( "%d %d\r\n",tick_to_slot_offset,prev_offset-tick_to_slot_offset );
+ 513:../../../../nano-RK/src/net/rt_link/rt_link.c ****     #ifdef RTL_DEBUG
+ 514:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rtl_debug_time_update(tick_to_slot_offset);
+ 515:../../../../nano-RK/src/net/rt_link/rt_link.c ****     #endif
+ 516:../../../../nano-RK/src/net/rt_link/rt_link.c ****     
+ 517:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //nrk_spin_wait_us(3600);
+ 518:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //printf( "sfd-start = %d %d\r\n",sfd_start_time,_nrk_high_speed_timer_get() );
+ 519:../../../../nano-RK/src/net/rt_link/rt_link.c ****      _nrk_os_timer_stop();
+ 520:../../../../nano-RK/src/net/rt_link/rt_link.c ****      _nrk_os_timer_reset();
+ 521:../../../../nano-RK/src/net/rt_link/rt_link.c ****      _nrk_os_timer_set(7);
+ 522:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_high_speed_timer_wait(0,SFD_TO_NEXT_SLOT_TIME);
+ 523:../../../../nano-RK/src/net/rt_link/rt_link.c ****      _nrk_os_timer_reset();
+ 524:../../../../nano-RK/src/net/rt_link/rt_link.c ****      _nrk_os_timer_start();
+ 525:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _nrk_high_speed_timer_reset();
+ 526:../../../../nano-RK/src/net/rt_link/rt_link.c ****     
+ 527:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //SFIOR |= BM(PSR0);              // reset prescaler
+ 528:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //TCNT0 = 0; 
+ 529:../../../../nano-RK/src/net/rt_link/rt_link.c ****     slot_start_time=_nrk_high_speed_timer_get();
+ 530:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //nrk_gpio_clr(NRK_DEBUG_1);
+ 531:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //printf( "%u %u\r\n",sfd_start_time, SFD_TO_NEXT_SLOT_TIME );
+ 532:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //_nrk_set_next_wakeup(6);
+ 533:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //nrk_wait_until_next_period();
+ 534:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //_nrk_prev_timer_val=elapsed_time;
+ 535:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //nrk_cur_task_TCB->suspend_flag=1;
+ 536:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //_nrk_set_next_wakeup(elapsed_time);
+ 537:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //_nrk_wait_for_scheduler();
+ 538:../../../../nano-RK/src/net/rt_link/rt_link.c ****    //printf( "sync %d\r\n",_rtl_sync_ok ); 
+ 539:../../../../nano-RK/src/net/rt_link/rt_link.c ****    //nrk_clr_led(2);
+ 540:../../../../nano-RK/src/net/rt_link/rt_link.c ****    //printf( "%d %d %d %d\r\n",tmp_token,tdma_start_tick,elapsed_time,tmp_offset);
+ 541:../../../../nano-RK/src/net/rt_link/rt_link.c ****     return _rtl_sync_ok;
+ 542:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 543:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 544:../../../../nano-RK/src/net/rt_link/rt_link.c **** /**
+ 545:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * _rtl_rx()
+ 546:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 547:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This is the low level RX packet function.  It will read in
+ 548:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * a packet and buffer it in the link layer's single RX buffer.
+ 549:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This buffer can be checked with rtl_check_rx_status() and 
+ 550:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * released with rtl_release_rx_packet().  If the buffer has not
+ 551:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * been released and a new packet arrives, the packet will be lost.
+ 552:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This function is only called from the timer interrupt routine.
+ 553:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 554:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * Arguments: slot is the current slot that is actively in RX mode.
+ 555:../../../../nano-RK/src/net/rt_link/rt_link.c ****  */
+ 556:../../../../nano-RK/src/net/rt_link/rt_link.c **** void _rtl_rx (uint8_t slot)
+ 557:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 558:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t n;
+ 559:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint16_t tmp;
+ 560:../../../../nano-RK/src/net/rt_link/rt_link.c ****     volatile uint16_t timeout;
+ 561:../../../../nano-RK/src/net/rt_link/rt_link.c ****  
+ 562:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 563:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef GPIO_RX_DEBUG
+ 564:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_gpio_set(NRK_DEBUG_1);
+ 565:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 566:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 567:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef LED_DEBUG
+ 568:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_led_set(1);
+ 569:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 570:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rf_set_rx (&rtl_rfRxInfo, rtl_param.channel);       // sets rx buffer and channel 
+ 571:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rf_polling_rx_on ();
+ 572:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //timeout = _nrk_get_high_speed_timer();
+ 573:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //timeout+=rtl_param.rx_timeout;
+ 574:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // FIXME: Change back to high speed timer with overflow catching
+ 575:../../../../nano-RK/src/net/rt_link/rt_link.c ****     timeout = _nrk_os_timer_get();
+ 576:../../../../nano-RK/src/net/rt_link/rt_link.c ****     timeout+=4; //rtl_param.rx_timeout;
+ 577:../../../../nano-RK/src/net/rt_link/rt_link.c ****      n = 0;
+ 578:../../../../nano-RK/src/net/rt_link/rt_link.c ****     while ((n = rf_rx_check_sfd()) == 0) {
+ 579:../../../../nano-RK/src/net/rt_link/rt_link.c ****       //  if (_nrk_get_high_speed_timer() > timeout) {
+ 580:../../../../nano-RK/src/net/rt_link/rt_link.c ****         if (_nrk_os_timer_get() > timeout) {
+ 581:../../../../nano-RK/src/net/rt_link/rt_link.c ****             	rf_rx_off ();
+ 582:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		#ifdef GPIO_RX_DEBUG
+ 583:../../../../nano-RK/src/net/rt_link/rt_link.c ****     		nrk_gpio_clr(NRK_DEBUG_1);
+ 584:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		#endif
+ 585:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		#ifdef LED_DEBUG
+ 586:../../../../nano-RK/src/net/rt_link/rt_link.c ****     		nrk_led_clr(1);
+ 587:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		#endif
+ 588:../../../../nano-RK/src/net/rt_link/rt_link.c ****     	    	// FIXME: add this back later
+ 589:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		// rtl_debug_dropped_pkt();
+ 590:../../../../nano-RK/src/net/rt_link/rt_link.c ****     	    //nrk_gpio_clr(NRK_DEBUG_1);
+ 591:../../../../nano-RK/src/net/rt_link/rt_link.c ****             return;
+ 592:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+ 593:../../../../nano-RK/src/net/rt_link/rt_link.c ****     }
+ 594:../../../../nano-RK/src/net/rt_link/rt_link.c ****  
+ 595:../../../../nano-RK/src/net/rt_link/rt_link.c ****     timeout = _nrk_os_timer_get ();
+ 596:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // This is important!
+ 597:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // If a preamble is decoded, but the packet fails,
+ 598:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // you must terminate before the end of the slot to avoid a timming error...
+ 599:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //timeout += 30;  // was 30
+ 600:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 601:../../../../nano-RK/src/net/rt_link/rt_link.c ****     timeout = _nrk_os_timer_get(); 
+ 602:../../../../nano-RK/src/net/rt_link/rt_link.c ****     timeout += 5;               // was 30
+ 603:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (n != 0) {
+ 604:../../../../nano-RK/src/net/rt_link/rt_link.c ****         n = 0;
+ 605:../../../../nano-RK/src/net/rt_link/rt_link.c ****         // Packet on its way
+ 606:../../../../nano-RK/src/net/rt_link/rt_link.c ****         while ((n = rf_polling_rx_packet ()) == 0) {
+ 607:../../../../nano-RK/src/net/rt_link/rt_link.c ****             if (_nrk_os_timer_get () > timeout) {
+ 608:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//nrk_kprintf( PSTR("pkt timed out\r\n") );
+ 609:../../../../nano-RK/src/net/rt_link/rt_link.c ****                 break;          // huge timeout as failsafe
+ 610:../../../../nano-RK/src/net/rt_link/rt_link.c ****             }
+ 611:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+ 612:../../../../nano-RK/src/net/rt_link/rt_link.c ****     }
+ 613:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 614:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	
+ 615:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 616:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 617:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rf_rx_off ();
+ 618:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (n == 1) {
+ 619:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	uint8_t explicit_sync_pkt;
+ 620:../../../../nano-RK/src/net/rt_link/rt_link.c ****         // CRC and checksum passed
+ 621:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// FIXME: DEBUG add back
+ 622:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	//rtl_debug_rx_pkt(1);
+ 623:../../../../nano-RK/src/net/rt_link/rt_link.c ****         rtl_rx_data_ready = 1;
+ 624:../../../../nano-RK/src/net/rt_link/rt_link.c ****         rtl_rx_slot = slot;
+ 625:../../../../nano-RK/src/net/rt_link/rt_link.c ****         tmp = rtl_rfRxInfo.pPayload[GLOBAL_SLOT];
+ 626:../../../../nano-RK/src/net/rt_link/rt_link.c ****         tmp <<= 8;
+ 627:../../../../nano-RK/src/net/rt_link/rt_link.c ****         tmp |= rtl_rfRxInfo.pPayload[GLOBAL_SLOT + 1];
+ 628:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	if(tmp!=global_slot)
+ 629:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		{
+ 630:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		// XXX HUGE HACK!
+ 631:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		// This shouldn't happen, but it does.  This should
+ 632:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		// be fixed soon.
+ 633:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//printf( "global slot mismatch: %d %d\r\n",global_slot,tmp );
+ 634:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		global_slot=tmp;
+ 635:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		}	
+ 636:../../../../nano-RK/src/net/rt_link/rt_link.c ****         //printf ("my slot = %d  rx slot = %d\r\n", global_slot, tmp);
+ 637:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	
+ 638:../../../../nano-RK/src/net/rt_link/rt_link.c ****         if (rx_callback != NULL)
+ 639:../../../../nano-RK/src/net/rt_link/rt_link.c ****             rx_callback (slot);
+ 640:../../../../nano-RK/src/net/rt_link/rt_link.c ****       // check if packet is an explicit time sync packet
+ 641:../../../../nano-RK/src/net/rt_link/rt_link.c ****      if((rtl_rfRxInfo.pPayload[TIME_SYNC_TOKEN]&0x80)==0)
+ 642:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			{
+ 643:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			// if we got a good packet, send the signal to
+ 644:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			// the application.  Shouldn't need to check rx
+ 645:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			// mask here since this should only get called by real
+ 646:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			// rx slot.
+ 647:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			nrk_event_signal (rtl_rx_pkt_signal);
+ 648:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			}
+ 649:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		// If it is an explicit time sync packet, then release it
+ 650:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		// so it doesn't block a buffer...
+ 651:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		else { 
+ 652:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//nrk_kprintf( PSTR("got explicit sync\r\n") );
+ 653:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		rtl_rx_pkt_release(); 
+ 654:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		}
+ 655:../../../../nano-RK/src/net/rt_link/rt_link.c ****     } // else printf( "Error = %d\r\n",(int8_t)n );           
+ 656:../../../../nano-RK/src/net/rt_link/rt_link.c ****     #ifdef RTL_DEBUG
+ 657:../../../../nano-RK/src/net/rt_link/rt_link.c ****     else  rtl_debug_dropped_pkt();
+ 658:../../../../nano-RK/src/net/rt_link/rt_link.c ****     #endif                
+ 659:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // else printf( "CRC Failed!\r" );
+ 660:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 661:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef LED_DEBUG
+ 662:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_led_clr (1);
+ 663:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 664:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef GPIO_RX_DEBUG
+ 665:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	nrk_gpio_clr(NRK_DEBUG_1);
+ 666:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 667:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 668:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 669:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 670:../../../../nano-RK/src/net/rt_link/rt_link.c **** /**
+ 671:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * _rtl_tx()
+ 672:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 673:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This function is the low level TX function.
+ 674:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * It is only called from the timer interrupt and fetches any
+ 675:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * packets that were set for a particular slot by rtl_tx_packet().
+ 676:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 677:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * Arguments: slot is the active slot set by the interrupt timer.
+ 678:../../../../nano-RK/src/net/rt_link/rt_link.c ****  */
+ 679:../../../../nano-RK/src/net/rt_link/rt_link.c **** void _rtl_tx (uint8_t slot)
+ 680:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 681:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t explicit_tsync;
+ 682:../../../../nano-RK/src/net/rt_link/rt_link.c ****     
+ 683:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (rtl_sync_status () == 0)
+ 684:../../../../nano-RK/src/net/rt_link/rt_link.c ****         return;                 // don't tx if you aren't sure you are in sync
+ 685:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (tx_callback != NULL)
+ 686:../../../../nano-RK/src/net/rt_link/rt_link.c ****         tx_callback (slot);
+ 687:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // Copy the element from the smaller vector of TX packets
+ 688:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // to the main TX packet
+ 689:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rfTxInfo.pPayload=rtl_tx_info[slot].pPayload;
+ 690:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rfTxInfo.length=rtl_tx_info[slot].length;
+ 691:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 692:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rfTxInfo.pPayload[GLOBAL_SLOT] = (global_slot >> 8);
+ 693:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rfTxInfo.pPayload[GLOBAL_SLOT + 1] = (global_slot & 0xFF);
+ 694:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // or in so that you don't kill 
+ 695:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rtl_rfTxInfo.pPayload[TIME_SYNC_TOKEN]|= _rtl_time_token;  
+ 696:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 697:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // This clears the explicit sync bit
+ 698:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rfTxInfo.pPayload[TIME_SYNC_TOKEN]= _rtl_time_token; 
+ 699:../../../../nano-RK/src/net/rt_link/rt_link.c ****     explicit_tsync=0;
+ 700:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // If it is an empty packet set explicit sync bit
+ 701:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if(rtl_rfTxInfo.length==PKT_DATA_START )
+ 702:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	{
+ 703:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	explicit_tsync=1;
+ 704:../../../../nano-RK/src/net/rt_link/rt_link.c ****     	rtl_rfTxInfo.pPayload[TIME_SYNC_TOKEN]|= 0x80;
+ 705:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	} 
+ 706:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	 
+ 707:../../../../nano-RK/src/net/rt_link/rt_link.c **** 									// MSB (explicit time slot flag)
+ 708:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 709:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef GPIO_TX_DEBUG
+ 710:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_gpio_set (NRK_DEBUG_1);
+ 711:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 712:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef LED_DEBUG
+ 713:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_led_set(0);
+ 714:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 715:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rf_tx_packet (rtl_rfTxInfo[slot]);
+ 716:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rf_tx_tdma_packet (&rtl_rfTxInfo,slot_start_time, rtl_param.tx_guard_time);
+ 717:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_tx_data_ready &= ~((uint32_t) 1 << slot);       // clear the flag
+ 718:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (slot >= (TDMA_FRAME_SLOTS - _rtl_contention_slots))
+ 719:../../../../nano-RK/src/net/rt_link/rt_link.c ****         _rtl_contention_pending = 0;
+ 720:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // clear time sync token so that explicit time slot flag is cleared 
+ 721:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rtl_rfTxInfo.pPayload[TIME_SYNC_TOKEN]=0;  
+ 722:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if(explicit_tsync==0)
+ 723:../../../../nano-RK/src/net/rt_link/rt_link.c ****     	nrk_event_signal (rtl_tx_done_signal);
+ 724:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 725:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef LED_DEBUG
+ 726:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_led_clr (0);
+ 727:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 728:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef GPIO_TX_DEBUG
+ 729:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_gpio_clr (NRK_DEBUG_1);
+ 730:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+ 731:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 732:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 733:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_set_cycle_callback (void *fp)
+ 734:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 477               	.LM40:
+ 478               	.LFBB12:
+ 479               	/* prologue: function */
+ 480               	/* frame size = 0 */
+ 735:../../../../nano-RK/src/net/rt_link/rt_link.c ****     cycle_callback = fp;
+ 482               	.LM41:
+ 483 00ca 9093 0000 		sts (cycle_callback)+1,r25
+ 484 00ce 8093 0000 		sts cycle_callback,r24
+ 485               	/* epilogue start */
+ 736:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 487               	.LM42:
+ 488 00d2 0895      		ret
+ 490               	.Lscope12:
+ 492               		.stabd	78,0,0
+ 495               	.global	rtl_set_slot_callback
+ 497               	rtl_set_slot_callback:
+ 498               		.stabd	46,0,0
+ 737:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 738:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_set_slot_callback (void *fp)
+ 739:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 500               	.LM43:
+ 501               	.LFBB13:
+ 502               	/* prologue: function */
+ 503               	/* frame size = 0 */
+ 740:../../../../nano-RK/src/net/rt_link/rt_link.c ****     slot_callback = fp;
+ 505               	.LM44:
+ 506 00d4 9093 0000 		sts (slot_callback)+1,r25
+ 507 00d8 8093 0000 		sts slot_callback,r24
+ 508               	/* epilogue start */
+ 741:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 510               	.LM45:
+ 511 00dc 0895      		ret
+ 513               	.Lscope13:
+ 515               		.stabd	78,0,0
+ 518               	.global	rtl_set_rx_callback
+ 520               	rtl_set_rx_callback:
+ 521               		.stabd	46,0,0
+ 742:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 743:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_set_rx_callback (void *fp)
+ 744:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 523               	.LM46:
+ 524               	.LFBB14:
+ 525               	/* prologue: function */
+ 526               	/* frame size = 0 */
+ 745:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rx_callback = fp;
+ 528               	.LM47:
+ 529 00de 9093 0000 		sts (rx_callback)+1,r25
+ 530 00e2 8093 0000 		sts rx_callback,r24
+ 531               	/* epilogue start */
+ 746:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 533               	.LM48:
+ 534 00e6 0895      		ret
+ 536               	.Lscope14:
+ 538               		.stabd	78,0,0
+ 541               	.global	rtl_set_tx_callback
+ 543               	rtl_set_tx_callback:
+ 544               		.stabd	46,0,0
+ 747:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 748:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_set_tx_callback (void *fp)
+ 749:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 546               	.LM49:
+ 547               	.LFBB15:
+ 548               	/* prologue: function */
+ 549               	/* frame size = 0 */
+ 750:../../../../nano-RK/src/net/rt_link/rt_link.c ****     tx_callback = fp;
+ 551               	.LM50:
+ 552 00e8 9093 0000 		sts (tx_callback)+1,r25
+ 553 00ec 8093 0000 		sts tx_callback,r24
+ 554               	/* epilogue start */
+ 751:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 556               	.LM51:
+ 557 00f0 0895      		ret
+ 559               	.Lscope15:
+ 561               		.stabd	78,0,0
+ 564               	.global	rtl_set_abs_callback
+ 566               	rtl_set_abs_callback:
+ 567               		.stabd	46,0,0
+ 752:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 753:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_set_abs_callback (void *fp)
+ 754:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 569               	.LM52:
+ 570               	.LFBB16:
+ 571               	/* prologue: function */
+ 572               	/* frame size = 0 */
+ 755:../../../../nano-RK/src/net/rt_link/rt_link.c ****     abs_callback = fp;
+ 574               	.LM53:
+ 575 00f2 9093 0000 		sts (abs_callback)+1,r25
+ 576 00f6 8093 0000 		sts abs_callback,r24
+ 577               	/* epilogue start */
+ 756:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 579               	.LM54:
+ 580 00fa 0895      		ret
+ 582               	.Lscope16:
+ 584               		.stabd	78,0,0
+ 588               	.global	rtl_rx_pkt_set_buffer
+ 590               	rtl_rx_pkt_set_buffer:
+ 591               		.stabd	46,0,0
+ 757:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 758:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_set_tx_power (uint8_t pwr)
+ 759:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 760:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rf_tx_power (pwr);
+ 761:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 762:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 763:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_set_contention (uint8_t slots, uint8_t rate)
+ 764:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 765:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t i;
+ 766:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 767:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_contention_slots = slots;
+ 768:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if (slots != 0) {
+ 769:../../../../nano-RK/src/net/rt_link/rt_link.c ****         for (i = 31; i > (31 - slots); i--) {
+ 770:../../../../nano-RK/src/net/rt_link/rt_link.c ****             //printf( "Adding Contention slot %d %d\n",i, rate );   
+ 771:../../../../nano-RK/src/net/rt_link/rt_link.c ****             rtl_set_schedule (RTL_RX, i, rate);
+ 772:../../../../nano-RK/src/net/rt_link/rt_link.c ****             rtl_set_schedule (RTL_TX, i, rate);
+ 773:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+ 774:../../../../nano-RK/src/net/rt_link/rt_link.c ****     }
+ 775:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 776:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 777:../../../../nano-RK/src/net/rt_link/rt_link.c **** int8_t rtl_rx_pkt_set_buffer(uint8_t *buf, uint8_t size)
+ 778:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 593               	.LM55:
+ 594               	.LFBB17:
+ 595               	/* prologue: function */
+ 596               	/* frame size = 0 */
+ 779:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 780:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if(size==0 || buf==NULL) return NRK_ERROR;
+ 598               	.LM56:
+ 599 00fc 6623      		tst r22
+ 600 00fe 01F0      		breq .L45
+ 601 0100 0097      		sbiw r24,0
+ 602 0102 01F0      		breq .L45
+ 781:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rfRxInfo.pPayload = buf;
+ 604               	.LM57:
+ 605 0104 9093 0000 		sts (rtl_rfRxInfo+5)+1,r25
+ 606 0108 8093 0000 		sts rtl_rfRxInfo+5,r24
+ 782:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rfRxInfo.max_length = size;
+ 608               	.LM58:
+ 609 010c 6093 0000 		sts rtl_rfRxInfo+4,r22
+ 610 0110 81E0      		ldi r24,lo8(1)
+ 783:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 784:../../../../nano-RK/src/net/rt_link/rt_link.c **** return NRK_OK;
+ 612               	.LM59:
+ 613 0112 0895      		ret
+ 614               	.L45:
+ 615 0114 8FEF      		ldi r24,lo8(-1)
+ 785:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 617               	.LM60:
+ 618 0116 0895      		ret
+ 620               	.Lscope17:
+ 622               		.stabd	78,0,0
+ 624               	.global	rtl_task_config
+ 626               	rtl_task_config:
+ 627               		.stabd	46,0,0
+ 786:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 787:../../../../nano-RK/src/net/rt_link/rt_link.c **** /**
+ 788:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * rtl_init()
+ 789:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 790:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This function sets up the low level link layer parameters.
+ 791:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This starts the main timer routine that will then automatically
+ 792:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * trigger whenever a packet might be sent or received.
+ 793:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * This should be called before ANY scheduling information is set
+ 794:../../../../nano-RK/src/net/rt_link/rt_link.c ****  * since it will clear some default values.
+ 795:../../../../nano-RK/src/net/rt_link/rt_link.c ****  *
+ 796:../../../../nano-RK/src/net/rt_link/rt_link.c ****  */
+ 797:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_init (rtl_node_mode_t mode)
+ 798:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 799:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t i;
+ 800:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint16_t a,b;
+ 801:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 802:../../../../nano-RK/src/net/rt_link/rt_link.c ****  rtl_rx_pkt_signal=nrk_signal_create();
+ 803:../../../../nano-RK/src/net/rt_link/rt_link.c ****      if(rtl_rx_pkt_signal==NRK_ERROR)
+ 804:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	{
+ 805:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	nrk_kprintf(PSTR("RT-Link ERROR: creating rx signal failed\r\n"));
+ 806:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	nrk_kernel_error_add(NRK_SIGNAL_CREATE_ERROR,nrk_cur_task_TCB->task_ID);
+ 807:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	return NRK_ERROR;
+ 808:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	}
+ 809:../../../../nano-RK/src/net/rt_link/rt_link.c ****   rtl_tx_done_signal=nrk_signal_create();
+ 810:../../../../nano-RK/src/net/rt_link/rt_link.c ****      if(rtl_tx_done_signal==NRK_ERROR)
+ 811:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	{
+ 812:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	nrk_kprintf(PSTR("RT-Link ERROR: creating tx signal failed\r\n"));
+ 813:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	nrk_kernel_error_add(NRK_SIGNAL_CREATE_ERROR,nrk_cur_task_TCB->task_ID);
+ 814:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	return NRK_ERROR;
+ 815:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	}
+ 816:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 817:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // No buffer to start with
+ 818:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rfRxInfo.pPayload = NULL;
+ 819:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rfRxInfo.max_length = 0;
+ 820:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 821:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // FIXME: Move into kernel later...
+ 822:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // Need to decide if this should always be running or not...
+ 823:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _nrk_high_speed_timer_start();  
+ 824:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //printf( "slot to sfd = %d\r\n",SLOT_TO_SFD);
+ 825:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //printf( "guard low = %d\r\n",GUARD_LOW);
+ 826:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //printf( "guard high = %d\r\n",GUARD_HIGH);
+ 827:../../../../nano-RK/src/net/rt_link/rt_link.c ****     #ifdef RTL_DEBUG
+ 828:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	rtl_debug_init();
+ 829:../../../../nano-RK/src/net/rt_link/rt_link.c ****     #endif
+ 830:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // clear everything out
+ 831:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_time_token_status=RTL_TOKEN_NOT_SENT;
+ 832:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_time_token=0;
+ 833:../../../../nano-RK/src/net/rt_link/rt_link.c ****     last_sync_slot=0;
+ 834:../../../../nano-RK/src/net/rt_link/rt_link.c ****     global_cycle = 0;
+ 835:../../../../nano-RK/src/net/rt_link/rt_link.c ****     global_slot = 1025;
+ 836:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_sync_ok = 0;
+ 837:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_node_mode = mode;
+ 838:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rx_data_ready = 0;
+ 839:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_tx_data_ready = 0;
+ 840:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_contention_slots = 0;
+ 841:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_contention_pending = 0;
+ 842:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 843:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 844:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rx_callback = NULL;
+ 845:../../../../nano-RK/src/net/rt_link/rt_link.c ****     tx_callback = NULL;
+ 846:../../../../nano-RK/src/net/rt_link/rt_link.c ****     abs_callback = NULL;
+ 847:../../../../nano-RK/src/net/rt_link/rt_link.c ****     slot_callback = NULL;
+ 848:../../../../nano-RK/src/net/rt_link/rt_link.c ****     cycle_callback = NULL;
+ 849:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 850:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_param.mobile_sync_timeout = 100;
+ 851:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_param.rx_timeout = 8000;   // 8000 *.125us = 1ms
+ 852:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 853:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // for nano-RK this value is +1 due to timing
+ 854:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // 1 -> 2ms
+ 855:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // 2 -> 3ms
+ 856:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // 3 -> 4ms 
+ 857:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rtl_param.rx_timeout = 5;  // each tick is about 120 uS (not true in nano-rk)
+ 858:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rtl_param.tx_guard_time = 120;
+ 859:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rtl_param.tx_guard_time = 300;
+ 860:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_param.tx_guard_time = TX_GUARD_TIME;  // 144uS  410-266
+ 861:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rtl_param.tx_guard_time = 1600;  // 144uS  410-266
+ 862:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_param.channel = 10;
+ 863:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_param.mac_addr = 0x1980;
+ 864:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 865:../../../../nano-RK/src/net/rt_link/rt_link.c **** for (i = 0; i < 16; i++) {
+ 866:../../../../nano-RK/src/net/rt_link/rt_link.c ****         rtl_sched[i] = 0;
+ 867:../../../../nano-RK/src/net/rt_link/rt_link.c ****         rtl_sched[i] = 0;
+ 868:../../../../nano-RK/src/net/rt_link/rt_link.c ****     }
+ 869:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_tdma_rx_mask = 0;
+ 870:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_tdma_tx_mask = 0;
+ 871:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_rx_data_ready = 0;
+ 872:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_tx_data_ready = 0;
+ 873:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rtl_abs_tx_slot=MAX_SLOTS+1;
+ 874:../../../../nano-RK/src/net/rt_link/rt_link.c **** //    rtl_abs_tx_slot=-1;
+ 875:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_clr_abs_all_wakeup ();
+ 876:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 877:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // Setup the AM sync ports etc
+ 878:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //AM_INIT ();   // FIXME
+ 879:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // Setup the cc2420 chip
+ 880:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rf_init (&rtl_rfRxInfo, rtl_param.channel, 0x2420, rtl_param.mac_addr);
+ 881:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 882:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 883:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 884:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 885:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_start ()
+ 886:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 887:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 888:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // Setup one absolute wakeup for the AM sync warmup repeated
+ 889:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //if (rtl_node_mode != RTL_MOBILE || rtl_node_mode != RTL_COORDINATOR)
+ 890:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //    rtl_set_abs_wakeup (_RTL_SYNC_WAKEUP_SLOT, 1);
+ 891:../../../../nano-RK/src/net/rt_link/rt_link.c ****     
+ 892:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // If you are the coordinator then set to transmit at rate 4
+ 893:../../../../nano-RK/src/net/rt_link/rt_link.c ****     // on every 0 slot if not already using slot 0. 
+ 894:../../../../nano-RK/src/net/rt_link/rt_link.c ****     if(rtl_node_mode==RTL_COORDINATOR)
+ 895:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	{
+ 896:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// Check if slot 0 is set to be used, and make sure it is
+ 897:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// at least rate 4 or faster.
+ 898:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	if((rtl_tdma_tx_mask & 0x1)==0 || (rtl_sched[0]&0x0F)>4)
+ 899:../../../../nano-RK/src/net/rt_link/rt_link.c ****     		{
+ 900:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			rtl_set_schedule( RTL_TX, 0, 4 );
+ 901:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		}
+ 902:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	}
+ 903:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 904:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //_nrk_reset_os_timer ();
+ 905:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_clear_sched_cache ();
+ 906:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_ready = 2;
+ 907:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 908:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 909:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 910:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_nw_task ()
+ 911:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 912:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t slot;
+ 913:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint32_t slot_mask;
+ 914:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t i, k, val, j, frames;
+ 915:../../../../nano-RK/src/net/rt_link/rt_link.c ****     int8_t n;
+ 916:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t timeout;
+ 917:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint16_t next_slot_offset, tmp; 
+ 918:../../../../nano-RK/src/net/rt_link/rt_link.c ****     uint8_t blink,skip_rxtx;
+ 919:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 920:../../../../nano-RK/src/net/rt_link/rt_link.c ****     blink = 0;
+ 921:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 922:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 923:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 924:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_ready = 0;
+ 925:../../../../nano-RK/src/net/rt_link/rt_link.c ****    
+ 926:../../../../nano-RK/src/net/rt_link/rt_link.c ****     do {
+ 927:../../../../nano-RK/src/net/rt_link/rt_link.c ****         nrk_wait_until_next_period ();
+ 928:../../../../nano-RK/src/net/rt_link/rt_link.c ****     }while ((volatile)_rtl_ready == 0);
+ 929:../../../../nano-RK/src/net/rt_link/rt_link.c ****     _rtl_ready = 1;
+ 930:../../../../nano-RK/src/net/rt_link/rt_link.c ****     
+ 931:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 932:../../../../nano-RK/src/net/rt_link/rt_link.c ****     skip_rxtx=0;
+ 933:../../../../nano-RK/src/net/rt_link/rt_link.c ****     last_slot = 0;
+ 934:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_time_get (&last_slot_time);
+ 935:../../../../nano-RK/src/net/rt_link/rt_link.c ****     while (1) {
+ 936:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// Need to calculate offset into TDMA slot starting now	
+ 937:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	//_nrk_stop_high_speed_timer();  
+ 938:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	//_nrk_reset_high_speed_timer();  
+ 939:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	//_nrk_start_high_speed_timer();  
+ 940:../../../../nano-RK/src/net/rt_link/rt_link.c ****         slot_start_time=_nrk_high_speed_timer_get();
+ 941:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	nrk_time_get (&last_slot_time);
+ 942:../../../../nano-RK/src/net/rt_link/rt_link.c ****         last_slot = global_slot;
+ 943:../../../../nano-RK/src/net/rt_link/rt_link.c ****         if (last_slot == 1025)
+ 944:../../../../nano-RK/src/net/rt_link/rt_link.c ****             last_slot = 0;
+ 945:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	
+ 946:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	current_global_slot = global_slot;
+ 947:../../../../nano-RK/src/net/rt_link/rt_link.c ****         if (global_slot >= MAX_SLOTS) {
+ 948:../../../../nano-RK/src/net/rt_link/rt_link.c ****             global_slot = 0;
+ 949:../../../../nano-RK/src/net/rt_link/rt_link.c ****             global_cycle++;
+ 950:../../../../nano-RK/src/net/rt_link/rt_link.c ****             if (cycle_callback != NULL)
+ 951:../../../../nano-RK/src/net/rt_link/rt_link.c ****                 cycle_callback (global_cycle);
+ 952:../../../../nano-RK/src/net/rt_link/rt_link.c ****             _rtl_clear_sched_cache ();
+ 953:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 954:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	    if (rtl_node_mode == RTL_COORDINATOR) {
+ 955:../../../../nano-RK/src/net/rt_link/rt_link.c ****                 _rtl_sync_ok = 1;
+ 956:../../../../nano-RK/src/net/rt_link/rt_link.c ****             }
+ 957:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+ 958:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 959:../../../../nano-RK/src/net/rt_link/rt_link.c ****         if (slot_callback != NULL)
+ 960:../../../../nano-RK/src/net/rt_link/rt_link.c ****             slot_callback (global_slot);
+ 961:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 962:../../../../nano-RK/src/net/rt_link/rt_link.c ****  	if (rtl_node_mode == RTL_MOBILE ){
+ 963:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	if ( global_slot==last_sync_slot+1 ) 
+ 964:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	    {
+ 965:../../../../nano-RK/src/net/rt_link/rt_link.c ****             // Wait for packet
+ 966:../../../../nano-RK/src/net/rt_link/rt_link.c ****             // Sync on packet
+ 967:../../../../nano-RK/src/net/rt_link/rt_link.c ****             // reset timer at the start of next slot
+ 968:../../../../nano-RK/src/net/rt_link/rt_link.c ****             // set global_slot to slot of rx packet+1
+ 969:../../../../nano-RK/src/net/rt_link/rt_link.c ****             //while (rtl_rx_data_ready != 0)
+ 970:../../../../nano-RK/src/net/rt_link/rt_link.c ****             	//nrk_wait_until_next_period ();
+ 971:../../../../nano-RK/src/net/rt_link/rt_link.c ****             while (_rtl_rx_sync () == 0);
+ 972:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	   	//_nrk_stop_high_speed_timer();  
+ 973:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//_nrk_reset_high_speed_timer();  
+ 974:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//_nrk_start_high_speed_timer();  
+ 975:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	    }
+ 976:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+ 977:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// This call is required to clear abs schedules
+ 978:../../../../nano-RK/src/net/rt_link/rt_link.c ****         if (_rtl_match_abs_wakeup (global_slot) == 1) {
+ 979:../../../../nano-RK/src/net/rt_link/rt_link.c ****             //printf( "Application Timer!\n" );
+ 980:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 981:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	    if (abs_callback != NULL)
+ 982:../../../../nano-RK/src/net/rt_link/rt_link.c ****                 abs_callback (global_slot);
+ 983:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+ 984:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 985:../../../../nano-RK/src/net/rt_link/rt_link.c ****         next_slot_offset = rtl_get_slots_until_next_wakeup (global_slot);
+ 986:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	
+ 987:../../../../nano-RK/src/net/rt_link/rt_link.c **** // Check for earlier non-slot wakeups...
+ 988:../../../../nano-RK/src/net/rt_link/rt_link.c ****         tmp = _rtl_get_next_abs_wakeup (global_slot);
+ 989:../../../../nano-RK/src/net/rt_link/rt_link.c ****         if (tmp != 0) {
+ 990:../../../../nano-RK/src/net/rt_link/rt_link.c ****             if (next_slot_offset == 0)
+ 991:../../../../nano-RK/src/net/rt_link/rt_link.c ****                 next_slot_offset = tmp;
+ 992:../../../../nano-RK/src/net/rt_link/rt_link.c ****             if (tmp < next_slot_offset)
+ 993:../../../../nano-RK/src/net/rt_link/rt_link.c ****                 next_slot_offset = tmp;
+ 994:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+ 995:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+ 996:../../../../nano-RK/src/net/rt_link/rt_link.c **** // Set next wakeup
+ 997:../../../../nano-RK/src/net/rt_link/rt_link.c ****         if (next_slot_offset == 0) {
+ 998:../../../../nano-RK/src/net/rt_link/rt_link.c ****             next_slot_offset = MAX_SLOTS - global_slot;       //Wake at end of TDMA cycle 
+ 999:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+1000:../../../../nano-RK/src/net/rt_link/rt_link.c **** #ifdef TXT_DEBUG
+1001:../../../../nano-RK/src/net/rt_link/rt_link.c ****         printf ("%d,%d,%d\r\n", global_slot, global_slot % 32,
+1002:../../../../nano-RK/src/net/rt_link/rt_link.c ****                 next_slot_offset);
+1003:../../../../nano-RK/src/net/rt_link/rt_link.c **** #endif
+1004:../../../../nano-RK/src/net/rt_link/rt_link.c ****         // FIXME _rtl_set_next_wakeup (next_slot_offset);
+1005:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	slot = global_slot % 32;
+1006:../../../../nano-RK/src/net/rt_link/rt_link.c ****         slot_mask = ((uint32_t) 1) << slot;
+1007:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1008:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1009:../../../../nano-RK/src/net/rt_link/rt_link.c ****        // Coordinator always TX on slot 0
+1010:../../../../nano-RK/src/net/rt_link/rt_link.c ****        if (rtl_node_mode == RTL_COORDINATOR && global_slot==0) 
+1011:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		{ 
+1012:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		_rtl_time_token++;  // Coordinator increases sync token
+1013:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		if(_rtl_time_token>127) _rtl_time_token=0;
+1014:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		}
+1015:../../../../nano-RK/src/net/rt_link/rt_link.c ****        if (rtl_node_mode == RTL_COORDINATOR && slot==0 )  
+1016:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		_rtl_time_token_status=RTL_TOKEN_NOT_SENT; 
+1017:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1018:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1019:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// If no data needs to be sent but time token needs to be passed, generate
+1020:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// explicit time sync packet.
+1021:../../../../nano-RK/src/net/rt_link/rt_link.c ****        if (_rtl_time_token_status==RTL_TOKEN_NOT_SENT)
+1022:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		{
+1023:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		//printf( "tns %d %d\r\n",slot,_rtl_contention_pending );
+1024:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		if(slot_mask & rtl_tdma_tx_mask )  // Yes it is your TX slot
+1025:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			{
+1026:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			if((slot_mask & rtl_tx_data_ready) == 0)  // No app data to send
+1027:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				{
+1028:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				// generate explicit packet
+1029:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				// When the link layer receives an explicit sync, it does not block buffers
+1030:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				// and does not signal applications
+1031:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				rtl_tsync_tx.pPayload=rtl_tsync_buf;
+1032:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				// set explicit time sync flag 
+1033:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				rtl_tsync_buf[TIME_SYNC_TOKEN]|=0x80;  
+1034:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				rtl_tsync_tx.length=PKT_DATA_START;
+1035:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				if(slot>(TDMA_FRAME_SLOTS-_rtl_contention_slots))
+1036:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				{
+1037:../../../../nano-RK/src/net/rt_link/rt_link.c **** 					if(_rtl_contention_pending==0) 
+1038:../../../../nano-RK/src/net/rt_link/rt_link.c **** 					{
+1039:../../../../nano-RK/src/net/rt_link/rt_link.c **** 						//printf( "cs" );
+1040:../../../../nano-RK/src/net/rt_link/rt_link.c **** 						rtl_tx_pkt (&rtl_tsync_tx,rtl_tsync_tx.length, RTL_CONTENTION);
+1041:../../../../nano-RK/src/net/rt_link/rt_link.c **** 					} 
+1042:../../../../nano-RK/src/net/rt_link/rt_link.c **** 					//else printf( "already pending\r\n" );
+1043:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				} else
+1044:../../../../nano-RK/src/net/rt_link/rt_link.c **** 					{
+1045:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			        	rtl_tx_pkt (&rtl_tsync_tx,rtl_tsync_tx.length, slot);
+1046:../../../../nano-RK/src/net/rt_link/rt_link.c **** 					//printf( "ss" );
+1047:../../../../nano-RK/src/net/rt_link/rt_link.c **** 					}
+1048:../../../../nano-RK/src/net/rt_link/rt_link.c **** 				}
+1049:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			//else printf( "piggy back\r\n" );
+1050:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			_rtl_time_token_status=RTL_TOKEN_SENT;
+1051:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			}
+1052:../../../../nano-RK/src/net/rt_link/rt_link.c **** 			//else printf( "no slot\r\n" );
+1053:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		
+1054:../../../../nano-RK/src/net/rt_link/rt_link.c **** 		}
+1055:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1056:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	if(global_slot!=last_sync_slot)
+1057:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	{
+1058:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1059:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// if TX slot mask and ready flag, send a packet
+1060:../../../../nano-RK/src/net/rt_link/rt_link.c ****         if (slot_mask & rtl_tx_data_ready & rtl_tdma_tx_mask)
+1061:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	    {
+1062:../../../../nano-RK/src/net/rt_link/rt_link.c ****             _rtl_tx (slot); 
+1063:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	    //printf( "sent %d\r\n",slot );
+1064:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	    }
+1065:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	// if RX slot mask and RX buffer free, try to receive a packet
+1066:../../../../nano-RK/src/net/rt_link/rt_link.c ****         else if ((slot_mask & rtl_tdma_rx_mask) && (rtl_rx_data_ready == 0))
+1067:../../../../nano-RK/src/net/rt_link/rt_link.c ****             { 
+1068:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	      _rtl_rx (slot);
+1069:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	    } 
+1070:../../../../nano-RK/src/net/rt_link/rt_link.c ****         else if (global_slot == rtl_abs_tx_slot && rtl_abs_tx_ready == 1) {
+1071:../../../../nano-RK/src/net/rt_link/rt_link.c ****             // Make sure this isn't overlapping a normal TX slot!
+1072:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	    _rtl_tx (TDMA_FRAME_SLOTS + 1);
+1073:../../../../nano-RK/src/net/rt_link/rt_link.c ****             rtl_abs_tx_ready = 0;
+1074:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+1075:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	}
+1076:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1077:../../../../nano-RK/src/net/rt_link/rt_link.c **** //    printf( "%d\r\n",global_slot);
+1078:../../../../nano-RK/src/net/rt_link/rt_link.c **** // Set correct slot for next wakeup
+1079:../../../../nano-RK/src/net/rt_link/rt_link.c **** //	printf( "s %d nw %d ",global_slot,next_slot_offset );
+1080:../../../../nano-RK/src/net/rt_link/rt_link.c ****        
+1081:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	if(global_slot==last_sync_slot && rtl_node_mode!=RTL_COORDINATOR)
+1082:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	{
+1083:../../../../nano-RK/src/net/rt_link/rt_link.c ****         global_slot++;
+1084:../../../../nano-RK/src/net/rt_link/rt_link.c ****         nrk_wait_until_ticks(5);
+1085:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	}
+1086:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	else
+1087:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	{
+1088:../../../../nano-RK/src/net/rt_link/rt_link.c ****         global_slot += next_slot_offset;
+1089:../../../../nano-RK/src/net/rt_link/rt_link.c ****         //nrk_clr_led (1);
+1090:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	#ifdef LED_SLOT_DEBUG
+1091:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	nrk_led_clr(0);
+1092:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	#endif
+1093:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1094:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	#ifdef GPIO_SLOT_DEBUG
+1095:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	nrk_gpio_clr(NRK_DEBUG_0);
+1096:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	#endif
+1097:../../../../nano-RK/src/net/rt_link/rt_link.c ****         nrk_wait_until_next_n_periods (next_slot_offset);
+1098:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	#ifdef LED_SLOT_DEBUG
+1099:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	nrk_led_set(0);
+1100:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	#endif
+1101:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	#ifdef GPIO_SLOT_DEBUG
+1102:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	nrk_gpio_set(NRK_DEBUG_0);
+1103:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	#endif
+1104:../../../../nano-RK/src/net/rt_link/rt_link.c **** 	}
+1105:../../../../nano-RK/src/net/rt_link/rt_link.c ****         //nrk_set_led (1);
+1106:../../../../nano-RK/src/net/rt_link/rt_link.c ****         // Set last_slot_time to the time of the start of the slot
+1107:../../../../nano-RK/src/net/rt_link/rt_link.c ****         }
+1108:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1109:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+1110:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1111:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1112:../../../../nano-RK/src/net/rt_link/rt_link.c **** 
+1113:../../../../nano-RK/src/net/rt_link/rt_link.c **** void rtl_task_config ()
+1114:../../../../nano-RK/src/net/rt_link/rt_link.c **** {
+ 629               	.LM61:
+ 630               	.LFBB18:
+ 631 0118 CF93      		push r28
+ 632 011a DF93      		push r29
+ 633               	/* prologue: function */
+ 634               	/* frame size = 0 */
+1115:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.task = rtl_nw_task;
+ 636               	.LM62:
+ 637 011c 80E0      		ldi r24,lo8(gs(rtl_nw_task))
+ 638 011e 90E0      		ldi r25,hi8(gs(rtl_nw_task))
+ 639 0120 9093 0000 		sts (rtl_task+5)+1,r25
+ 640 0124 8093 0000 		sts rtl_task+5,r24
+1116:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_task_set_stk( &rtl_task, rtl_task_stack, RT_LINK_STACK_SIZE);
+ 642               	.LM63:
+ 643 0128 C0E0      		ldi r28,lo8(rtl_task)
+ 644 012a D0E0      		ldi r29,hi8(rtl_task)
+ 645 012c CE01      		movw r24,r28
+ 646 012e 60E0      		ldi r22,lo8(rtl_task_stack)
+ 647 0130 70E0      		ldi r23,hi8(rtl_task_stack)
+ 648 0132 40E8      		ldi r20,lo8(128)
+ 649 0134 50E0      		ldi r21,hi8(128)
+ 650 0136 0E94 0000 		call nrk_task_set_stk
+1117:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.prio = 20;
+ 652               	.LM64:
+ 653 013a 84E1      		ldi r24,lo8(20)
+ 654 013c 8887      		std Y+8,r24
+1118:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.FirstActivation = TRUE;
+ 656               	.LM65:
+ 657 013e 81E0      		ldi r24,lo8(1)
+ 658 0140 8F83      		std Y+7,r24
+1119:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.Type = BASIC_TASK;
+ 660               	.LM66:
+ 661 0142 8987      		std Y+9,r24
+1120:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.SchType = PREEMPTIVE;
+ 663               	.LM67:
+ 664 0144 8A87      		std Y+10,r24
+1121:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.period.secs = 0;
+ 666               	.LM68:
+ 667 0146 1B86      		std Y+11,__zero_reg__
+ 668 0148 1C86      		std Y+12,__zero_reg__
+ 669 014a 1D86      		std Y+13,__zero_reg__
+ 670 014c 1E86      		std Y+14,__zero_reg__
+1122:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.period.nano_secs = RTL_NRK_TICKS_PER_SLOT * NANOS_PER_TICK;
+ 672               	.LM69:
+ 673 014e 8BE4      		ldi r24,lo8(8789067)
+ 674 0150 9CE1      		ldi r25,hi8(8789067)
+ 675 0152 A6E8      		ldi r26,hlo8(8789067)
+ 676 0154 B0E0      		ldi r27,hhi8(8789067)
+ 677 0156 8F87      		std Y+15,r24
+ 678 0158 988B      		std Y+16,r25
+ 679 015a A98B      		std Y+17,r26
+ 680 015c BA8B      		std Y+18,r27
+1123:../../../../nano-RK/src/net/rt_link/rt_link.c ****     //rtl_task.period.nano_secs = 100*NANOS_PER_MS;
+1124:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.cpu_reserve.secs = 0;      // Way larger than period
+ 682               	.LM70:
+ 683 015e 1B8A      		std Y+19,__zero_reg__
+ 684 0160 1C8A      		std Y+20,__zero_reg__
+ 685 0162 1D8A      		std Y+21,__zero_reg__
+ 686 0164 1E8A      		std Y+22,__zero_reg__
+1125:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.cpu_reserve.nano_secs = 0;
+ 688               	.LM71:
+ 689 0166 1F8A      		std Y+23,__zero_reg__
+ 690 0168 188E      		std Y+24,__zero_reg__
+ 691 016a 198E      		std Y+25,__zero_reg__
+ 692 016c 1A8E      		std Y+26,__zero_reg__
+1126:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.offset.secs = 0;
+ 694               	.LM72:
+ 695 016e 1B8E      		std Y+27,__zero_reg__
+ 696 0170 1C8E      		std Y+28,__zero_reg__
+ 697 0172 1D8E      		std Y+29,__zero_reg__
+ 698 0174 1E8E      		std Y+30,__zero_reg__
+1127:../../../../nano-RK/src/net/rt_link/rt_link.c ****     rtl_task.offset.nano_secs = 0;
+ 700               	.LM73:
+ 701 0176 1F8E      		std Y+31,__zero_reg__
+ 702 0178 18A2      		std Y+32,__zero_reg__
+ 703 017a 19A2      		std Y+33,__zero_reg__
+ 704 017c 1AA2      		std Y+34,__zero_reg__
+1128:../../../../nano-RK/src/net/rt_link/rt_link.c ****     nrk_activate_task (&rtl_task);
+ 706               	.LM74:
+ 707 017e CE01      		movw r24,r28
+ 708 0180 0E94 0000 		call nrk_activate_task
+ 709               	/* epilogue start */
+1129:../../../../nano-RK/src/net/rt_link/rt_link.c **** }
+ 711               	.LM75:
+ 712 0184 DF91      		pop r29
+ 713 0186 CF91      		pop r28
+ 714 0188 0895      		ret
+ 716               	.Lscope18:
+ 718               		.stabd	78,0,0
+ 720               	.global	rtl_start
+ 722               	rtl_start:
+ 723               		.stabd	46,0,0
+ 725               	.LM76:
+ 726               	.LFBB19:
+ 727               	/* prologue: function */
+ 728               	/* frame size = 0 */
+ 730               	.LM77:
+ 731 018a 8091 0000 		lds r24,rtl_node_mode
+ 732 018e 8230      		cpi r24,lo8(2)
+ 733 0190 01F4      		brne .L51
+ 735               	.LM78:
+ 736 0192 8091 0000 		lds r24,rtl_tdma_tx_mask
+ 737 0196 9091 0000 		lds r25,(rtl_tdma_tx_mask)+1
+ 738 019a A091 0000 		lds r26,(rtl_tdma_tx_mask)+2
+ 739 019e B091 0000 		lds r27,(rtl_tdma_tx_mask)+3
+ 740 01a2 8170      		andi r24,lo8(1)
+ 741 01a4 9070      		andi r25,hi8(1)
+ 742 01a6 A070      		andi r26,hlo8(1)
+ 743 01a8 B070      		andi r27,hhi8(1)
+ 744 01aa 0097      		sbiw r24,0
+ 745 01ac A105      		cpc r26,__zero_reg__
+ 746 01ae B105      		cpc r27,__zero_reg__
+ 747 01b0 01F0      		breq .L52
+ 748 01b2 8091 0000 		lds r24,rtl_sched
+ 749 01b6 90E0      		ldi r25,lo8(0)
+ 750 01b8 8F70      		andi r24,lo8(15)
+ 751 01ba 9070      		andi r25,hi8(15)
+ 752 01bc 8530      		cpi r24,5
+ 753 01be 9105      		cpc r25,__zero_reg__
+ 754 01c0 04F0      		brlt .L51
+ 755               	.L52:
+ 757               	.LM79:
+ 758 01c2 81E0      		ldi r24,lo8(1)
+ 759 01c4 60E0      		ldi r22,lo8(0)
+ 760 01c6 44E0      		ldi r20,lo8(4)
+ 761 01c8 0E94 0000 		call rtl_set_schedule
+ 762               	.L51:
+ 764               	.LM80:
+ 765 01cc 0E94 0000 		call _rtl_clear_sched_cache
+ 767               	.LM81:
+ 768 01d0 82E0      		ldi r24,lo8(2)
+ 769 01d2 8093 0000 		sts _rtl_ready,r24
+ 770               	/* epilogue start */
+ 772               	.LM82:
+ 773 01d6 0895      		ret
+ 775               	.Lscope19:
+ 777               		.stabd	78,0,0
+ 781               	.global	rtl_set_contention
+ 783               	rtl_set_contention:
+ 784               		.stabd	46,0,0
+ 786               	.LM83:
+ 787               	.LFBB20:
+ 788 01d8 0F93      		push r16
+ 789 01da 1F93      		push r17
+ 790 01dc CF93      		push r28
+ 791 01de DF93      		push r29
+ 792               	/* prologue: function */
+ 793               	/* frame size = 0 */
+ 794 01e0 062F      		mov r16,r22
+ 796               	.LM84:
+ 797 01e2 8093 0000 		sts _rtl_contention_slots,r24
+ 799               	.LM85:
+ 800 01e6 8823      		tst r24
+ 801 01e8 01F0      		breq .L58
+ 802 01ea 1FE1      		ldi r17,lo8(31)
+ 804               	.LM86:
+ 805 01ec CFE1      		ldi r28,lo8(31)
+ 806 01ee D0E0      		ldi r29,hi8(31)
+ 807 01f0 C81B      		sub r28,r24
+ 808 01f2 D109      		sbc r29,__zero_reg__
+ 809 01f4 00C0      		rjmp .L56
+ 810               	.L57:
+ 812               	.LM87:
+ 813 01f6 80E0      		ldi r24,lo8(0)
+ 814 01f8 612F      		mov r22,r17
+ 815 01fa 402F      		mov r20,r16
+ 816 01fc 0E94 0000 		call rtl_set_schedule
+ 818               	.LM88:
+ 819 0200 81E0      		ldi r24,lo8(1)
+ 820 0202 612F      		mov r22,r17
+ 821 0204 402F      		mov r20,r16
+ 822 0206 0E94 0000 		call rtl_set_schedule
+ 824               	.LM89:
+ 825 020a 1150      		subi r17,lo8(-(-1))
+ 826               	.L56:
+ 827 020c 812F      		mov r24,r17
+ 828 020e 90E0      		ldi r25,lo8(0)
+ 829 0210 C817      		cp r28,r24
+ 830 0212 D907      		cpc r29,r25
+ 831 0214 04F0      		brlt .L57
+ 832               	.L58:
+ 833               	/* epilogue start */
+ 835               	.LM90:
+ 836 0216 DF91      		pop r29
+ 837 0218 CF91      		pop r28
+ 838 021a 1F91      		pop r17
+ 839 021c 0F91      		pop r16
+ 840 021e 0895      		ret
+ 845               	.Lscope20:
+ 847               		.stabd	78,0,0
+ 850               	.global	rtl_init
+ 852               	rtl_init:
+ 853               		.stabd	46,0,0
+ 855               	.LM91:
+ 856               	.LFBB21:
+ 857 0220 1F93      		push r17
+ 858               	/* prologue: function */
+ 859               	/* frame size = 0 */
+ 860 0222 182F      		mov r17,r24
+ 862               	.LM92:
+ 863 0224 0E94 0000 		call nrk_signal_create
+ 864 0228 8093 0000 		sts rtl_rx_pkt_signal,r24
+ 866               	.LM93:
+ 867 022c 8F3F      		cpi r24,lo8(-1)
+ 868 022e 01F4      		brne .L60
+ 870               	.LM94:
+ 871 0230 80E0      		ldi r24,lo8(__c.2728)
+ 872 0232 90E0      		ldi r25,hi8(__c.2728)
+ 873 0234 00C0      		rjmp .L66
+ 874               	.L60:
+ 876               	.LM95:
+ 877 0236 0E94 0000 		call nrk_signal_create
+ 878 023a 8093 0000 		sts rtl_tx_done_signal,r24
+ 880               	.LM96:
+ 881 023e 8F3F      		cpi r24,lo8(-1)
+ 882 0240 01F4      		brne .L62
+ 884               	.LM97:
+ 885 0242 80E0      		ldi r24,lo8(__c.2730)
+ 886 0244 90E0      		ldi r25,hi8(__c.2730)
+ 887               	.L66:
+ 888 0246 0E94 0000 		call nrk_kprintf
+ 890               	.LM98:
+ 891 024a E091 0000 		lds r30,nrk_cur_task_TCB
+ 892 024e F091 0000 		lds r31,(nrk_cur_task_TCB)+1
+ 893 0252 8EE0      		ldi r24,lo8(14)
+ 894 0254 6085      		ldd r22,Z+8
+ 895 0256 0E94 0000 		call nrk_kernel_error_add
+ 897               	.LM99:
+ 898 025a 00C0      		rjmp .L64
+ 899               	.L62:
+ 901               	.LM100:
+ 902 025c 1092 0000 		sts (rtl_rfRxInfo+5)+1,__zero_reg__
+ 903 0260 1092 0000 		sts rtl_rfRxInfo+5,__zero_reg__
+ 905               	.LM101:
+ 906 0264 1092 0000 		sts rtl_rfRxInfo+4,__zero_reg__
+ 908               	.LM102:
+ 909 0268 0E94 0000 		call _nrk_high_speed_timer_start
+ 911               	.LM103:
+ 912 026c 1092 0000 		sts _rtl_time_token_status,__zero_reg__
+ 914               	.LM104:
+ 915 0270 1092 0000 		sts _rtl_time_token,__zero_reg__
+ 917               	.LM105:
+ 918 0274 1092 0000 		sts (last_sync_slot)+1,__zero_reg__
+ 919 0278 1092 0000 		sts last_sync_slot,__zero_reg__
+ 921               	.LM106:
+ 922 027c 1092 0000 		sts (global_cycle)+1,__zero_reg__
+ 923 0280 1092 0000 		sts global_cycle,__zero_reg__
+ 925               	.LM107:
+ 926 0284 81E0      		ldi r24,lo8(1025)
+ 927 0286 94E0      		ldi r25,hi8(1025)
+ 928 0288 9093 0000 		sts (global_slot)+1,r25
+ 929 028c 8093 0000 		sts global_slot,r24
+ 931               	.LM108:
+ 932 0290 1092 0000 		sts _rtl_sync_ok,__zero_reg__
+ 934               	.LM109:
+ 935 0294 1093 0000 		sts rtl_node_mode,r17
+ 937               	.LM110:
+ 938 0298 1092 0000 		sts _rtl_contention_slots,__zero_reg__
+ 940               	.LM111:
+ 941 029c 1092 0000 		sts _rtl_contention_pending,__zero_reg__
+ 943               	.LM112:
+ 944 02a0 1092 0000 		sts (rx_callback)+1,__zero_reg__
+ 945 02a4 1092 0000 		sts rx_callback,__zero_reg__
+ 947               	.LM113:
+ 948 02a8 1092 0000 		sts (tx_callback)+1,__zero_reg__
+ 949 02ac 1092 0000 		sts tx_callback,__zero_reg__
+ 951               	.LM114:
+ 952 02b0 1092 0000 		sts (abs_callback)+1,__zero_reg__
+ 953 02b4 1092 0000 		sts abs_callback,__zero_reg__
+ 955               	.LM115:
+ 956 02b8 1092 0000 		sts (slot_callback)+1,__zero_reg__
+ 957 02bc 1092 0000 		sts slot_callback,__zero_reg__
+ 959               	.LM116:
+ 960 02c0 1092 0000 		sts (cycle_callback)+1,__zero_reg__
+ 961 02c4 1092 0000 		sts cycle_callback,__zero_reg__
+ 963               	.LM117:
+ 964 02c8 84E6      		ldi r24,lo8(100)
+ 965 02ca 8093 0000 		sts rtl_param+8,r24
+ 967               	.LM118:
+ 968 02ce 80E4      		ldi r24,lo8(8000)
+ 969 02d0 9FE1      		ldi r25,hi8(8000)
+ 970 02d2 9093 0000 		sts (rtl_param+6)+1,r25
+ 971 02d6 8093 0000 		sts rtl_param+6,r24
+ 973               	.LM119:
+ 974 02da 80EA      		ldi r24,lo8(4000)
+ 975 02dc 9FE0      		ldi r25,hi8(4000)
+ 976 02de 9093 0000 		sts (rtl_param+4)+1,r25
+ 977 02e2 8093 0000 		sts rtl_param+4,r24
+ 979               	.LM120:
+ 980 02e6 8AE0      		ldi r24,lo8(10)
+ 981 02e8 8093 0000 		sts rtl_param+2,r24
+ 983               	.LM121:
+ 984 02ec 80E8      		ldi r24,lo8(6528)
+ 985 02ee 99E1      		ldi r25,hi8(6528)
+ 986 02f0 9093 0000 		sts (rtl_param)+1,r25
+ 987 02f4 8093 0000 		sts rtl_param,r24
+ 988 02f8 E0E0      		ldi r30,lo8(rtl_sched)
+ 989 02fa F0E0      		ldi r31,hi8(rtl_sched)
+ 990               	.L63:
+ 992               	.LM122:
+ 993 02fc 1192      		st Z+,__zero_reg__
+ 995               	.LM123:
+ 996 02fe 80E0      		ldi r24,hi8(rtl_sched+16)
+ 997 0300 E030      		cpi r30,lo8(rtl_sched+16)
+ 998 0302 F807      		cpc r31,r24
+ 999 0304 01F4      		brne .L63
+ 1001               	.LM124:
+ 1002 0306 1092 0000 		sts rtl_tdma_rx_mask,__zero_reg__
+ 1003 030a 1092 0000 		sts (rtl_tdma_rx_mask)+1,__zero_reg__
+ 1004 030e 1092 0000 		sts (rtl_tdma_rx_mask)+2,__zero_reg__
+ 1005 0312 1092 0000 		sts (rtl_tdma_rx_mask)+3,__zero_reg__
+ 1007               	.LM125:
+ 1008 0316 1092 0000 		sts rtl_tdma_tx_mask,__zero_reg__
+ 1009 031a 1092 0000 		sts (rtl_tdma_tx_mask)+1,__zero_reg__
+ 1010 031e 1092 0000 		sts (rtl_tdma_tx_mask)+2,__zero_reg__
+ 1011 0322 1092 0000 		sts (rtl_tdma_tx_mask)+3,__zero_reg__
+ 1013               	.LM126:
+ 1014 0326 1092 0000 		sts rtl_rx_data_ready,__zero_reg__
+ 1016               	.LM127:
+ 1017 032a 1092 0000 		sts rtl_tx_data_ready,__zero_reg__
+ 1018 032e 1092 0000 		sts (rtl_tx_data_ready)+1,__zero_reg__
+ 1019 0332 1092 0000 		sts (rtl_tx_data_ready)+2,__zero_reg__
+ 1020 0336 1092 0000 		sts (rtl_tx_data_ready)+3,__zero_reg__
+ 1022               	.LM128:
+ 1023 033a 0E94 0000 		call _rtl_clr_abs_all_wakeup
+ 1025               	.LM129:
+ 1026 033e 2091 0000 		lds r18,rtl_param
+ 1027 0342 3091 0000 		lds r19,(rtl_param)+1
+ 1028 0346 80E0      		ldi r24,lo8(rtl_rfRxInfo)
+ 1029 0348 90E0      		ldi r25,hi8(rtl_rfRxInfo)
+ 1030 034a 6091 0000 		lds r22,rtl_param+2
+ 1031 034e 40E2      		ldi r20,lo8(9248)
+ 1032 0350 54E2      		ldi r21,hi8(9248)
+ 1033 0352 0E94 0000 		call rf_init
+ 1034               	.L64:
+ 1035               	/* epilogue start */
+ 1037               	.LM130:
+ 1038 0356 1F91      		pop r17
+ 1039 0358 0895      		ret
+ 1041               	.Lscope21:
+ 1043               		.stabd	78,0,0
+ 1046               	.global	rtl_set_tx_power
+ 1048               	rtl_set_tx_power:
+ 1049               		.stabd	46,0,0
+ 1051               	.LM131:
+ 1052               	.LFBB22:
+ 1053               	/* prologue: function */
+ 1054               	/* frame size = 0 */
+ 1056               	.LM132:
+ 1057 035a 0E94 0000 		call rf_tx_power
+ 1058               	/* epilogue start */
+ 1060               	.LM133:
+ 1061 035e 0895      		ret
+ 1063               	.Lscope22:
+ 1065               		.stabd	78,0,0
+ 1068               	.global	_rtl_tx
+ 1070               	_rtl_tx:
+ 1071               		.stabd	46,0,0
+ 1073               	.LM134:
+ 1074               	.LFBB23:
+ 1075 0360 1F93      		push r17
+ 1076 0362 CF93      		push r28
+ 1077 0364 DF93      		push r29
+ 1078               	/* prologue: function */
+ 1079               	/* frame size = 0 */
+ 1080 0366 182F      		mov r17,r24
+ 1082               	.LM135:
+ 1083 0368 8091 0000 		lds r24,_rtl_sync_ok
+ 1084 036c 8823      		tst r24
+ 1085 036e 01F4      		brne .+2
+ 1086 0370 00C0      		rjmp .L75
+ 1088               	.LM136:
+ 1089 0372 E091 0000 		lds r30,tx_callback
+ 1090 0376 F091 0000 		lds r31,(tx_callback)+1
+ 1091 037a 3097      		sbiw r30,0
+ 1092 037c 01F0      		breq .L71
+ 1094               	.LM137:
+ 1095 037e 812F      		mov r24,r17
+ 1096 0380 0995      		icall
+ 1097               	.L71:
+ 1099               	.LM138:
+ 1100 0382 C12F      		mov r28,r17
+ 1101 0384 D0E0      		ldi r29,lo8(0)
+ 1102 0386 FE01      		movw r30,r28
+ 1103 0388 EE0F      		lsl r30
+ 1104 038a FF1F      		rol r31
+ 1105 038c EC0F      		add r30,r28
+ 1106 038e FD1F      		adc r31,r29
+ 1107 0390 E050      		subi r30,lo8(-(rtl_tx_info))
+ 1108 0392 F040      		sbci r31,hi8(-(rtl_tx_info))
+ 1109 0394 8181      		ldd r24,Z+1
+ 1110 0396 9281      		ldd r25,Z+2
+ 1111 0398 9093 0000 		sts (rtl_rfTxInfo+3)+1,r25
+ 1112 039c 8093 0000 		sts rtl_rfTxInfo+3,r24
+ 1114               	.LM139:
+ 1115 03a0 8081      		ld r24,Z
+ 1116 03a2 8093 0000 		sts rtl_rfTxInfo+2,r24
+ 1118               	.LM140:
+ 1119 03a6 E091 0000 		lds r30,rtl_rfTxInfo+3
+ 1120 03aa F091 0000 		lds r31,(rtl_rfTxInfo+3)+1
+ 1121 03ae 8091 0000 		lds r24,global_slot
+ 1122 03b2 9091 0000 		lds r25,(global_slot)+1
+ 1123 03b6 9083      		st Z,r25
+ 1125               	.LM141:
+ 1126 03b8 E091 0000 		lds r30,rtl_rfTxInfo+3
+ 1127 03bc F091 0000 		lds r31,(rtl_rfTxInfo+3)+1
+ 1128 03c0 8091 0000 		lds r24,global_slot
+ 1129 03c4 9091 0000 		lds r25,(global_slot)+1
+ 1130 03c8 8183      		std Z+1,r24
+ 1132               	.LM142:
+ 1133 03ca E091 0000 		lds r30,rtl_rfTxInfo+3
+ 1134 03ce F091 0000 		lds r31,(rtl_rfTxInfo+3)+1
+ 1135 03d2 8091 0000 		lds r24,_rtl_time_token
+ 1136 03d6 8283      		std Z+2,r24
+ 1138               	.LM143:
+ 1139 03d8 8091 0000 		lds r24,rtl_rfTxInfo+2
+ 1140 03dc 8330      		cpi r24,lo8(3)
+ 1141 03de 01F0      		breq .L72
+ 1142 03e0 10E0      		ldi r17,lo8(0)
+ 1143 03e2 00C0      		rjmp .L73
+ 1144               	.L72:
+ 1146               	.LM144:
+ 1147 03e4 E091 0000 		lds r30,rtl_rfTxInfo+3
+ 1148 03e8 F091 0000 		lds r31,(rtl_rfTxInfo+3)+1
+ 1149 03ec 8281      		ldd r24,Z+2
+ 1150 03ee 8068      		ori r24,lo8(-128)
+ 1151 03f0 8283      		std Z+2,r24
+ 1152 03f2 11E0      		ldi r17,lo8(1)
+ 1153               	.L73:
+ 1155               	.LM145:
+ 1156 03f4 6091 0000 		lds r22,slot_start_time
+ 1157 03f8 7091 0000 		lds r23,(slot_start_time)+1
+ 1158 03fc 4091 0000 		lds r20,rtl_param+4
+ 1159 0400 5091 0000 		lds r21,(rtl_param+4)+1
+ 1160 0404 80E0      		ldi r24,lo8(rtl_rfTxInfo)
+ 1161 0406 90E0      		ldi r25,hi8(rtl_rfTxInfo)
+ 1162 0408 0E94 0000 		call rf_tx_tdma_packet
+ 1164               	.LM146:
+ 1165 040c 81E0      		ldi r24,lo8(1)
+ 1166 040e 90E0      		ldi r25,hi8(1)
+ 1167 0410 A0E0      		ldi r26,hlo8(1)
+ 1168 0412 B0E0      		ldi r27,hhi8(1)
+ 1169 0414 0C2E      		mov r0,r28
+ 1170 0416 00C0      		rjmp 2f
+ 1171 0418 880F      	1:	lsl r24
+ 1172 041a 991F      		rol r25
+ 1173 041c AA1F      		rol r26
+ 1174 041e BB1F      		rol r27
+ 1175 0420 0A94      	2:	dec r0
+ 1176 0422 02F4      		brpl 1b
+ 1177 0424 8095      		com r24
+ 1178 0426 9095      		com r25
+ 1179 0428 A095      		com r26
+ 1180 042a B095      		com r27
+ 1181 042c 2091 0000 		lds r18,rtl_tx_data_ready
+ 1182 0430 3091 0000 		lds r19,(rtl_tx_data_ready)+1
+ 1183 0434 4091 0000 		lds r20,(rtl_tx_data_ready)+2
+ 1184 0438 5091 0000 		lds r21,(rtl_tx_data_ready)+3
+ 1185 043c 2823      		and r18,r24
+ 1186 043e 3923      		and r19,r25
+ 1187 0440 4A23      		and r20,r26
+ 1188 0442 5B23      		and r21,r27
+ 1189 0444 2093 0000 		sts rtl_tx_data_ready,r18
+ 1190 0448 3093 0000 		sts (rtl_tx_data_ready)+1,r19
+ 1191 044c 4093 0000 		sts (rtl_tx_data_ready)+2,r20
+ 1192 0450 5093 0000 		sts (rtl_tx_data_ready)+3,r21
+ 1194               	.LM147:
+ 1195 0454 2091 0000 		lds r18,_rtl_contention_slots
+ 1196 0458 80E2      		ldi r24,lo8(32)
+ 1197 045a 90E0      		ldi r25,hi8(32)
+ 1198 045c 821B      		sub r24,r18
+ 1199 045e 9109      		sbc r25,__zero_reg__
+ 1200 0460 C817      		cp r28,r24
+ 1201 0462 D907      		cpc r29,r25
+ 1202 0464 04F0      		brlt .L74
+ 1204               	.LM148:
+ 1205 0466 1092 0000 		sts _rtl_contention_pending,__zero_reg__
+ 1206               	.L74:
+ 1208               	.LM149:
+ 1209 046a 1123      		tst r17
+ 1210 046c 01F4      		brne .L75
+ 1212               	.LM150:
+ 1213 046e 8091 0000 		lds r24,rtl_tx_done_signal
+ 1214 0472 0E94 0000 		call nrk_event_signal
+ 1215               	.L75:
+ 1216               	/* epilogue start */
+ 1218               	.LM151:
+ 1219 0476 DF91      		pop r29
+ 1220 0478 CF91      		pop r28
+ 1221 047a 1F91      		pop r17
+ 1222 047c 0895      		ret
+ 1227               	.Lscope23:
+ 1229               		.stabd	78,0,0
+ 1232               	.global	_rtl_rx
+ 1234               	_rtl_rx:
+ 1235               		.stabd	46,0,0
+ 1237               	.LM152:
+ 1238               	.LFBB24:
+ 1239 047e 0F93      		push r16
+ 1240 0480 1F93      		push r17
+ 1241 0482 DF93      		push r29
+ 1242 0484 CF93      		push r28
+ 1243 0486 00D0      		rcall .
+ 1244 0488 CDB7      		in r28,__SP_L__
+ 1245 048a DEB7      		in r29,__SP_H__
+ 1246               	/* prologue: function */
+ 1247               	/* frame size = 2 */
+ 1248 048c 182F      		mov r17,r24
+ 1250               	.LM153:
+ 1251 048e 80E0      		ldi r24,lo8(rtl_rfRxInfo)
+ 1252 0490 90E0      		ldi r25,hi8(rtl_rfRxInfo)
+ 1253 0492 6091 0000 		lds r22,rtl_param+2
+ 1254 0496 0E94 0000 		call rf_set_rx
+ 1256               	.LM154:
+ 1257 049a 0E94 0000 		call rf_polling_rx_on
+ 1259               	.LM155:
+ 1260 049e 0E94 0000 		call _nrk_os_timer_get
+ 1261 04a2 90E0      		ldi r25,lo8(0)
+ 1262 04a4 9A83      		std Y+2,r25
+ 1263 04a6 8983      		std Y+1,r24
+ 1265               	.LM156:
+ 1266 04a8 8981      		ldd r24,Y+1
+ 1267 04aa 9A81      		ldd r25,Y+2
+ 1268 04ac 0496      		adiw r24,4
+ 1269 04ae 9A83      		std Y+2,r25
+ 1270 04b0 8983      		std Y+1,r24
+ 1272               	.LM157:
+ 1273 04b2 00C0      		rjmp .L77
+ 1274               	.L79:
+ 1276               	.LM158:
+ 1277 04b4 0E94 0000 		call _nrk_os_timer_get
+ 1278 04b8 2981      		ldd r18,Y+1
+ 1279 04ba 3A81      		ldd r19,Y+2
+ 1280 04bc 90E0      		ldi r25,lo8(0)
+ 1281 04be 2817      		cp r18,r24
+ 1282 04c0 3907      		cpc r19,r25
+ 1283 04c2 00F4      		brsh .L77
+ 1285               	.LM159:
+ 1286 04c4 0E94 0000 		call rf_rx_off
+ 1288               	.LM160:
+ 1289 04c8 00C0      		rjmp .L86
+ 1290               	.L77:
+ 1292               	.LM161:
+ 1293 04ca 0E94 0000 		call rf_rx_check_sfd
+ 1294 04ce 8823      		tst r24
+ 1295 04d0 01F0      		breq .L79
+ 1297               	.LM162:
+ 1298 04d2 0E94 0000 		call _nrk_os_timer_get
+ 1299 04d6 90E0      		ldi r25,lo8(0)
+ 1300 04d8 9A83      		std Y+2,r25
+ 1301 04da 8983      		std Y+1,r24
+ 1303               	.LM163:
+ 1304 04dc 0E94 0000 		call _nrk_os_timer_get
+ 1305 04e0 90E0      		ldi r25,lo8(0)
+ 1306 04e2 9A83      		std Y+2,r25
+ 1307 04e4 8983      		std Y+1,r24
+ 1309               	.LM164:
+ 1310 04e6 8981      		ldd r24,Y+1
+ 1311 04e8 9A81      		ldd r25,Y+2
+ 1312 04ea 0596      		adiw r24,5
+ 1313 04ec 9A83      		std Y+2,r25
+ 1314 04ee 8983      		std Y+1,r24
+ 1315 04f0 00C0      		rjmp .L80
+ 1316               	.L82:
+ 1318               	.LM165:
+ 1319 04f2 0E94 0000 		call _nrk_os_timer_get
+ 1320 04f6 2981      		ldd r18,Y+1
+ 1321 04f8 3A81      		ldd r19,Y+2
+ 1322 04fa 90E0      		ldi r25,lo8(0)
+ 1323 04fc 2817      		cp r18,r24
+ 1324 04fe 3907      		cpc r19,r25
+ 1325 0500 00F0      		brlo .L81
+ 1326               	.L80:
+ 1328               	.LM166:
+ 1329 0502 0E94 0000 		call rf_polling_rx_packet
+ 1330 0506 082F      		mov r16,r24
+ 1331 0508 8823      		tst r24
+ 1332 050a 01F0      		breq .L82
+ 1333               	.L81:
+ 1335               	.LM167:
+ 1336 050c 0E94 0000 		call rf_rx_off
+ 1338               	.LM168:
+ 1339 0510 0130      		cpi r16,lo8(1)
+ 1340 0512 01F4      		brne .L86
+ 1341               	.LBB26:
+ 1343               	.LM169:
+ 1344 0514 0093 0000 		sts rtl_rx_data_ready,r16
+ 1346               	.LM170:
+ 1347 0518 1093 0000 		sts rtl_rx_slot,r17
+ 1349               	.LM171:
+ 1350 051c E091 0000 		lds r30,rtl_rfRxInfo+5
+ 1351 0520 F091 0000 		lds r31,(rtl_rfRxInfo+5)+1
+ 1353               	.LM172:
+ 1354 0524 3081      		ld r19,Z
+ 1355 0526 20E0      		ldi r18,lo8(0)
+ 1357               	.LM173:
+ 1358 0528 8181      		ldd r24,Z+1
+ 1359 052a 90E0      		ldi r25,lo8(0)
+ 1360 052c 822B      		or r24,r18
+ 1361 052e 932B      		or r25,r19
+ 1363               	.LM174:
+ 1364 0530 2091 0000 		lds r18,global_slot
+ 1365 0534 3091 0000 		lds r19,(global_slot)+1
+ 1366 0538 8217      		cp r24,r18
+ 1367 053a 9307      		cpc r25,r19
+ 1368 053c 01F0      		breq .L83
+ 1370               	.LM175:
+ 1371 053e 9093 0000 		sts (global_slot)+1,r25
+ 1372 0542 8093 0000 		sts global_slot,r24
+ 1373               	.L83:
+ 1375               	.LM176:
+ 1376 0546 E091 0000 		lds r30,rx_callback
+ 1377 054a F091 0000 		lds r31,(rx_callback)+1
+ 1378 054e 3097      		sbiw r30,0
+ 1379 0550 01F0      		breq .L84
+ 1381               	.LM177:
+ 1382 0552 812F      		mov r24,r17
+ 1383 0554 0995      		icall
+ 1384               	.L84:
+ 1386               	.LM178:
+ 1387 0556 E091 0000 		lds r30,rtl_rfRxInfo+5
+ 1388 055a F091 0000 		lds r31,(rtl_rfRxInfo+5)+1
+ 1389 055e 8281      		ldd r24,Z+2
+ 1390 0560 87FD      		sbrc r24,7
+ 1391 0562 00C0      		rjmp .L85
+ 1393               	.LM179:
+ 1394 0564 8091 0000 		lds r24,rtl_rx_pkt_signal
+ 1395 0568 0E94 0000 		call nrk_event_signal
+ 1396 056c 00C0      		rjmp .L86
+ 1397               	.L85:
+ 1398               	.LBB27:
+ 1399               	.LBB28:
+ 1401               	.LM180:
+ 1402 056e 1092 0000 		sts rtl_rx_data_ready,__zero_reg__
+ 1403               	.L86:
+ 1404               	/* epilogue start */
+ 1405               	.LBE28:
+ 1406               	.LBE27:
+ 1407               	.LBE26:
+ 1409               	.LM181:
+ 1410 0572 0F90      		pop __tmp_reg__
+ 1411 0574 0F90      		pop __tmp_reg__
+ 1412 0576 CF91      		pop r28
+ 1413 0578 DF91      		pop r29
+ 1414 057a 1F91      		pop r17
+ 1415 057c 0F91      		pop r16
+ 1416 057e 0895      		ret
+ 1422               	.Lscope24:
+ 1424               		.stabd	78,0,0
+ 1428               	.global	rtl_tx_abs_pkt
+ 1430               	rtl_tx_abs_pkt:
+ 1431               		.stabd	46,0,0
+ 1433               	.LM182:
+ 1434               	.LFBB25:
+ 1435 0580 AF92      		push r10
+ 1436 0582 BF92      		push r11
+ 1437 0584 CF92      		push r12
+ 1438 0586 DF92      		push r13
+ 1439 0588 EF92      		push r14
+ 1440 058a FF92      		push r15
+ 1441 058c 0F93      		push r16
+ 1442 058e 1F93      		push r17
+ 1443               	/* prologue: function */
+ 1444               	/* frame size = 0 */
+ 1445 0590 9C01      		movw r18,r24
+ 1446 0592 CA01      		movw r24,r20
+ 1448               	.LM183:
+ 1449 0594 4F71      		andi r20,lo8(31)
+ 1450 0596 51E0      		ldi r21,lo8(1)
+ 1451 0598 E52E      		mov r14,r21
+ 1452 059a F12C      		mov r15,__zero_reg__
+ 1453 059c 012D      		mov r16,__zero_reg__
+ 1454 059e 112D      		mov r17,__zero_reg__
+ 1455 05a0 00C0      		rjmp 2f
+ 1456 05a2 EE0C      	1:	lsl r14
+ 1457 05a4 FF1C      		rol r15
+ 1458 05a6 001F      		rol r16
+ 1459 05a8 111F      		rol r17
+ 1460 05aa 4A95      	2:	dec r20
+ 1461 05ac 02F4      		brpl 1b
+ 1462 05ae A090 0000 		lds r10,rtl_tdma_tx_mask
+ 1463 05b2 B090 0000 		lds r11,(rtl_tdma_tx_mask)+1
+ 1464 05b6 C090 0000 		lds r12,(rtl_tdma_tx_mask)+2
+ 1465 05ba D090 0000 		lds r13,(rtl_tdma_tx_mask)+3
+ 1466 05be EA20      		and r14,r10
+ 1467 05c0 FB20      		and r15,r11
+ 1468 05c2 0C21      		and r16,r12
+ 1469 05c4 1D21      		and r17,r13
+ 1470 05c6 E114      		cp r14,__zero_reg__
+ 1471 05c8 F104      		cpc r15,__zero_reg__
+ 1472 05ca 0105      		cpc r16,__zero_reg__
+ 1473 05cc 1105      		cpc r17,__zero_reg__
+ 1474 05ce 01F0      		breq .L89
+ 1475 05d0 80E0      		ldi r24,lo8(0)
+ 1476 05d2 00C0      		rjmp .L90
+ 1477               	.L89:
+ 1479               	.LM184:
+ 1480 05d4 3093 0000 		sts (rtl_tx_info+100)+1,r19
+ 1481 05d8 2093 0000 		sts rtl_tx_info+100,r18
+ 1483               	.LM185:
+ 1484 05dc 6093 0000 		sts rtl_tx_info+99,r22
+ 1486               	.LM186:
+ 1487 05e0 8093 0000 		sts rtl_abs_tx_slot,r24
+ 1488 05e4 9093 0000 		sts rtl_abs_tx_slot+1,r25
+ 1490               	.LM187:
+ 1491 05e8 60E0      		ldi r22,lo8(0)
+ 1492 05ea 0E94 0000 		call rtl_set_abs_wakeup
+ 1494               	.LM188:
+ 1495 05ee 81E0      		ldi r24,lo8(1)
+ 1496 05f0 8093 0000 		sts rtl_abs_tx_ready,r24
+ 1497               	.L90:
+ 1498               	/* epilogue start */
+ 1500               	.LM189:
+ 1501 05f4 1F91      		pop r17
+ 1502 05f6 0F91      		pop r16
+ 1503 05f8 FF90      		pop r15
+ 1504 05fa EF90      		pop r14
+ 1505 05fc DF90      		pop r13
+ 1506 05fe CF90      		pop r12
+ 1507 0600 BF90      		pop r11
+ 1508 0602 AF90      		pop r10
+ 1509 0604 0895      		ret
+ 1511               	.Lscope25:
+ 1513               		.stabd	78,0,0
+ 1515               	.global	_rtl_rx_sync
+ 1517               	_rtl_rx_sync:
+ 1518               		.stabd	46,0,0
+ 1520               	.LM190:
+ 1521               	.LFBB26:
+ 1522 0606 AF92      		push r10
+ 1523 0608 BF92      		push r11
+ 1524 060a DF92      		push r13
+ 1525 060c EF92      		push r14
+ 1526 060e FF92      		push r15
+ 1527 0610 0F93      		push r16
+ 1528 0612 1F93      		push r17
+ 1529 0614 DF93      		push r29
+ 1530 0616 CF93      		push r28
+ 1531 0618 00D0      		rcall .
+ 1532 061a 0F92      		push __tmp_reg__
+ 1533 061c CDB7      		in r28,__SP_L__
+ 1534 061e DEB7      		in r29,__SP_H__
+ 1535               	/* prologue: function */
+ 1536               	/* frame size = 3 */
+ 1538               	.LM191:
+ 1539 0620 FF24      		clr r15
+ 1540 0622 00E0      		ldi r16,lo8(0)
+ 1541 0624 10E0      		ldi r17,hi8(0)
+ 1543               	.LM192:
+ 1544 0626 EE24      		clr r14
+ 1545 0628 EA94      		dec r14
+ 1546               	.L115:
+ 1547 062a E091 0000 		lds r30,rtl_rfRxInfo+5
+ 1548 062e F091 0000 		lds r31,(rtl_rfRxInfo+5)+1
+ 1549 0632 E082      		st Z,r14
+ 1551               	.LM193:
+ 1552 0634 E091 0000 		lds r30,rtl_rfRxInfo+5
+ 1553 0638 F091 0000 		lds r31,(rtl_rfRxInfo+5)+1
+ 1554 063c E182      		std Z+1,r14
+ 1556               	.LM194:
+ 1557 063e 80E0      		ldi r24,lo8(rtl_rfRxInfo)
+ 1558 0640 90E0      		ldi r25,hi8(rtl_rfRxInfo)
+ 1559 0642 6091 0000 		lds r22,rtl_param+2
+ 1560 0646 0E94 0000 		call rf_set_rx
+ 1562               	.LM195:
+ 1563 064a 0E94 0000 		call rf_polling_rx_on
+ 1565               	.LM196:
+ 1566 064e 1092 0000 		sts _rtl_sync_ok,__zero_reg__
+ 1568               	.LM197:
+ 1569 0652 8AEF      		ldi r24,lo8(-6)
+ 1570 0654 0E94 0000 		call _nrk_set_next_wakeup
+ 1571 0658 AA24      		clr r10
+ 1573               	.LM198:
+ 1574 065a 00C0      		rjmp .L114
+ 1575               	.L96:
+ 1577               	.LM199:
+ 1578 065c 0E94 0000 		call _nrk_os_timer_get
+ 1579 0660 A816      		cp r10,r24
+ 1580 0662 01F0      		breq .L114
+ 1582               	.LM200:
+ 1583 0664 0E94 0000 		call _nrk_os_timer_get
+ 1584 0668 A82E      		mov r10,r24
+ 1586               	.LM201:
+ 1587 066a 0F5F      		subi r16,lo8(-(1))
+ 1588 066c 1F4F      		sbci r17,hi8(-(1))
+ 1590               	.LM202:
+ 1591 066e 27E2      		ldi r18,hi8(10001)
+ 1592 0670 0131      		cpi r16,lo8(10001)
+ 1593 0672 1207      		cpc r17,r18
+ 1594 0674 00F0      		brlo .L114
+ 1596               	.LM203:
+ 1597 0676 1092 0000 		sts _rtl_time_token,__zero_reg__
+ 1599               	.LM204:
+ 1600 067a F394      		inc r15
+ 1602               	.LM205:
+ 1603 067c 85E0      		ldi r24,lo8(5)
+ 1604 067e 8F15      		cp r24,r15
+ 1605 0680 00F4      		brsh .L116
+ 1607               	.LM206:
+ 1608 0682 0E94 0000 		call nrk_battery_save
+ 1609 0686 FF24      		clr r15
+ 1610               	.L116:
+ 1611 0688 00E0      		ldi r16,lo8(0)
+ 1612 068a 10E0      		ldi r17,hi8(0)
+ 1613 068c 00C0      		rjmp .L95
+ 1614               	.L114:
+ 1616               	.LM207:
+ 1617 068e 0E94 0000 		call rf_rx_check_sfd
+ 1618 0692 D82E      		mov r13,r24
+ 1619 0694 8823      		tst r24
+ 1620 0696 01F0      		breq .L96
+ 1621               	.L95:
+ 1623               	.LM208:
+ 1624 0698 0E94 0000 		call _nrk_high_speed_timer_reset
+ 1626               	.LM209:
+ 1627 069c 0E94 0000 		call _nrk_high_speed_timer_get
+ 1628 06a0 9A83      		std Y+2,r25
+ 1629 06a2 8983      		std Y+1,r24
+ 1631               	.LM210:
+ 1632 06a4 0E94 0000 		call _nrk_os_timer_get
+ 1634               	.LM211:
+ 1635 06a8 A82E      		mov r10,r24
+ 1636 06aa BB24      		clr r11
+ 1637 06ac 84E0      		ldi r24,lo8(4)
+ 1638 06ae 90E0      		ldi r25,hi8(4)
+ 1639 06b0 A80E      		add r10,r24
+ 1640 06b2 B91E      		adc r11,r25
+ 1642               	.LM212:
+ 1643 06b4 DD20      		tst r13
+ 1644 06b6 01F4      		brne .L112
+ 1645 06b8 00C0      		rjmp .L98
+ 1646               	.L99:
+ 1648               	.LM213:
+ 1649 06ba 0E94 0000 		call _nrk_os_timer_get
+ 1650 06be 90E0      		ldi r25,lo8(0)
+ 1651 06c0 A816      		cp r10,r24
+ 1652 06c2 B906      		cpc r11,r25
+ 1653 06c4 00F0      		brlo .L98
+ 1654               	.L112:
+ 1656               	.LM214:
+ 1657 06c6 0E94 0000 		call rf_polling_rx_packet
+ 1658 06ca D82E      		mov r13,r24
+ 1659 06cc 8823      		tst r24
+ 1660 06ce 01F0      		breq .L99
+ 1661               	.L98:
+ 1663               	.LM215:
+ 1664 06d0 0E94 0000 		call rf_rx_off
+ 1666               	.LM216:
+ 1667 06d4 91E0      		ldi r25,lo8(1)
+ 1668 06d6 D916      		cp r13,r25
+ 1669 06d8 01F0      		breq .+2
+ 1670 06da 00C0      		rjmp .L115
+ 1671 06dc 8091 0000 		lds r24,rtl_rfRxInfo+3
+ 1672 06e0 1816      		cp __zero_reg__,r24
+ 1673 06e2 04F0      		brlt .+2
+ 1674 06e4 00C0      		rjmp .L115
+ 1675               	.LBB29:
+ 1677               	.LM217:
+ 1678 06e6 D092 0000 		sts rtl_rx_data_ready,r13
+ 1680               	.LM218:
+ 1681 06ea E091 0000 		lds r30,rtl_rfRxInfo+5
+ 1682 06ee F091 0000 		lds r31,(rtl_rfRxInfo+5)+1
+ 1683 06f2 8081      		ld r24,Z
+ 1684 06f4 90E0      		ldi r25,lo8(0)
+ 1685 06f6 9093 0000 		sts (global_slot)+1,r25
+ 1686 06fa 8093 0000 		sts global_slot,r24
+ 1688               	.LM219:
+ 1689 06fe 8091 0000 		lds r24,global_slot
+ 1690 0702 9091 0000 		lds r25,(global_slot)+1
+ 1691 0706 982F      		mov r25,r24
+ 1692 0708 8827      		clr r24
+ 1693 070a 9093 0000 		sts (global_slot)+1,r25
+ 1694 070e 8093 0000 		sts global_slot,r24
+ 1696               	.LM220:
+ 1697 0712 2091 0000 		lds r18,global_slot
+ 1698 0716 3091 0000 		lds r19,(global_slot)+1
+ 1699 071a 8181      		ldd r24,Z+1
+ 1700 071c 90E0      		ldi r25,lo8(0)
+ 1701 071e 822B      		or r24,r18
+ 1702 0720 932B      		or r25,r19
+ 1703 0722 9093 0000 		sts (global_slot)+1,r25
+ 1704 0726 8093 0000 		sts global_slot,r24
+ 1706               	.LM221:
+ 1707 072a DF01      		movw r26,r30
+ 1708 072c 1296      		adiw r26,2
+ 1709 072e 9281      		ldd r25,Z+2
+ 1710 0730 9F77      		andi r25,lo8(127)
+ 1712               	.LM222:
+ 1713 0732 8091 0000 		lds r24,_rtl_time_token
+ 1714 0736 8917      		cp r24,r25
+ 1715 0738 00F0      		brlo .L101
+ 1716 073a 8F36      		cpi r24,lo8(111)
+ 1717 073c 00F4      		brsh .+2
+ 1718 073e 00C0      		rjmp .L115
+ 1719 0740 9A30      		cpi r25,lo8(10)
+ 1720 0742 00F0      		brlo .+2
+ 1721 0744 00C0      		rjmp .L115
+ 1722               	.L101:
+ 1724               	.LM223:
+ 1725 0746 2091 0000 		lds r18,global_slot
+ 1726 074a 3091 0000 		lds r19,(global_slot)+1
+ 1727 074e 822F      		mov r24,r18
+ 1728 0750 8F71      		andi r24,lo8(31)
+ 1729 0752 8093 0000 		sts rtl_rx_slot,r24
+ 1731               	.LM224:
+ 1732 0756 8C91      		ld r24,X
+ 1733 0758 87FD      		sbrc r24,7
+ 1734 075a 00C0      		rjmp .L102
+ 1736               	.LM225:
+ 1737 075c 8091 0000 		lds r24,rtl_rx_slot
+ 1738 0760 2091 0000 		lds r18,rtl_tdma_rx_mask
+ 1739 0764 3091 0000 		lds r19,(rtl_tdma_rx_mask)+1
+ 1740 0768 4091 0000 		lds r20,(rtl_tdma_rx_mask)+2
+ 1741 076c 5091 0000 		lds r21,(rtl_tdma_rx_mask)+3
+ 1742 0770 00C0      		rjmp 2f
+ 1743 0772 5695      	1:	lsr r21
+ 1744 0774 4795      		ror r20
+ 1745 0776 3795      		ror r19
+ 1746 0778 2795      		ror r18
+ 1747 077a 8A95      	2:	dec r24
+ 1748 077c 02F4      		brpl 1b
+ 1749 077e 2170      		andi r18,lo8(1)
+ 1750 0780 3070      		andi r19,hi8(1)
+ 1751 0782 4070      		andi r20,hlo8(1)
+ 1752 0784 5070      		andi r21,hhi8(1)
+ 1753 0786 2115      		cp r18,__zero_reg__
+ 1754 0788 3105      		cpc r19,__zero_reg__
+ 1755 078a 4105      		cpc r20,__zero_reg__
+ 1756 078c 5105      		cpc r21,__zero_reg__
+ 1757 078e 01F0      		breq .L102
+ 1759               	.LM226:
+ 1760 0790 8091 0000 		lds r24,rtl_rx_pkt_signal
+ 1761 0794 9B83      		std Y+3,r25
+ 1762 0796 0E94 0000 		call nrk_event_signal
+ 1763 079a 9B81      		ldd r25,Y+3
+ 1764 079c 00C0      		rjmp .L104
+ 1765               	.L102:
+ 1766               	.LBB30:
+ 1767               	.LBB31:
+ 1769               	.LM227:
+ 1770 079e 1092 0000 		sts rtl_rx_data_ready,__zero_reg__
+ 1771               	.L104:
+ 1772               	.LBE31:
+ 1773               	.LBE30:
+ 1774               	.LBE29:
+ 1776               	.LM228:
+ 1777 07a2 2091 0000 		lds r18,global_slot
+ 1778 07a6 3091 0000 		lds r19,(global_slot)+1
+ 1779 07aa 822F      		mov r24,r18
+ 1780 07ac 8F71      		andi r24,lo8(31)
+ 1781 07ae 8093 0000 		sts rtl_rx_slot,r24
+ 1783               	.LM229:
+ 1784 07b2 2091 0000 		lds r18,global_slot
+ 1785 07b6 3091 0000 		lds r19,(global_slot)+1
+ 1786 07ba 2150      		subi r18,lo8(-(-1))
+ 1787 07bc 3040      		sbci r19,hi8(-(-1))
+ 1788 07be 3093 0000 		sts (current_global_slot)+1,r19
+ 1789 07c2 2093 0000 		sts current_global_slot,r18
+ 1791               	.LM230:
+ 1792 07c6 1092 0000 		sts _rtl_time_token_status,__zero_reg__
+ 1794               	.LM231:
+ 1795 07ca 9093 0000 		sts _rtl_time_token,r25
+ 1797               	.LM232:
+ 1798 07ce 81E0      		ldi r24,lo8(1)
+ 1799 07d0 8093 0000 		sts _rtl_sync_ok,r24
+ 1801               	.LM233:
+ 1802 07d4 8091 0000 		lds r24,last_sync_slot
+ 1803 07d8 9091 0000 		lds r25,(last_sync_slot)+1
+ 1804 07dc 0E94 0000 		call _rtl_clr_abs_wakeup
+ 1806               	.LM234:
+ 1807 07e0 8091 0000 		lds r24,global_slot
+ 1808 07e4 9091 0000 		lds r25,(global_slot)+1
+ 1809 07e8 24E0      		ldi r18,hi8(1024)
+ 1810 07ea 8030      		cpi r24,lo8(1024)
+ 1811 07ec 9207      		cpc r25,r18
+ 1812 07ee 00F4      		brsh .L105
+ 1813 07f0 8091 0000 		lds r24,global_slot
+ 1814 07f4 9091 0000 		lds r25,(global_slot)+1
+ 1815 07f8 8230      		cpi r24,2
+ 1816 07fa 9105      		cpc r25,__zero_reg__
+ 1817 07fc 00F4      		brsh .L106
+ 1818               	.L105:
+ 1820               	.LM235:
+ 1821 07fe 8EEF      		ldi r24,lo8(1022)
+ 1822 0800 93E0      		ldi r25,hi8(1022)
+ 1823 0802 00C0      		rjmp .L117
+ 1824               	.L106:
+ 1826               	.LM236:
+ 1827 0804 8091 0000 		lds r24,global_slot
+ 1828 0808 9091 0000 		lds r25,(global_slot)+1
+ 1829 080c 0297      		sbiw r24,2
+ 1830               	.L117:
+ 1831 080e 9093 0000 		sts (last_sync_slot)+1,r25
+ 1832 0812 8093 0000 		sts last_sync_slot,r24
+ 1834               	.LM237:
+ 1835 0816 8091 0000 		lds r24,last_sync_slot
+ 1836 081a 9091 0000 		lds r25,(last_sync_slot)+1
+ 1837 081e 60E0      		ldi r22,lo8(0)
+ 1838 0820 0E94 0000 		call rtl_set_abs_wakeup
+ 1840               	.LM238:
+ 1841 0824 0E94 0000 		call _rtl_clear_sched_cache
+ 1843               	.LM239:
+ 1844 0828 0E94 0000 		call _nrk_os_timer_stop
+ 1846               	.LM240:
+ 1847 082c 0E94 0000 		call _nrk_os_timer_reset
+ 1849               	.LM241:
+ 1850 0830 87E0      		ldi r24,lo8(7)
+ 1851 0832 0E94 0000 		call _nrk_os_timer_set
+ 1853               	.LM242:
+ 1854 0836 80E0      		ldi r24,lo8(0)
+ 1855 0838 90E0      		ldi r25,hi8(0)
+ 1856 083a 66E6      		ldi r22,lo8(27750)
+ 1857 083c 7CE6      		ldi r23,hi8(27750)
+ 1858 083e 0E94 0000 		call nrk_high_speed_timer_wait
+ 1860               	.LM243:
+ 1861 0842 0E94 0000 		call _nrk_os_timer_reset
+ 1863               	.LM244:
+ 1864 0846 0E94 0000 		call _nrk_os_timer_start
+ 1866               	.LM245:
+ 1867 084a 0E94 0000 		call _nrk_high_speed_timer_reset
+ 1869               	.LM246:
+ 1870 084e 0E94 0000 		call _nrk_high_speed_timer_get
+ 1871 0852 9093 0000 		sts (slot_start_time)+1,r25
+ 1872 0856 8093 0000 		sts slot_start_time,r24
+ 1874               	.LM247:
+ 1875 085a 8091 0000 		lds r24,_rtl_sync_ok
+ 1876               	/* epilogue start */
+ 1877 085e 0F90      		pop __tmp_reg__
+ 1878 0860 0F90      		pop __tmp_reg__
+ 1879 0862 0F90      		pop __tmp_reg__
+ 1880 0864 CF91      		pop r28
+ 1881 0866 DF91      		pop r29
+ 1882 0868 1F91      		pop r17
+ 1883 086a 0F91      		pop r16
+ 1884 086c FF90      		pop r15
+ 1885 086e EF90      		pop r14
+ 1886 0870 DF90      		pop r13
+ 1887 0872 BF90      		pop r11
+ 1888 0874 AF90      		pop r10
+ 1889 0876 0895      		ret
+ 1900               	.Lscope26:
+ 1902               		.stabd	78,0,0
+ 1905               	.global	rtl_set_channel
+ 1907               	rtl_set_channel:
+ 1908               		.stabd	46,0,0
+ 1910               	.LM248:
+ 1911               	.LFBB27:
+ 1912               	/* prologue: function */
+ 1913               	/* frame size = 0 */
+ 1915               	.LM249:
+ 1916 0878 8093 0000 		sts rtl_param+2,r24
+ 1918               	.LM250:
+ 1919 087c 0E94 0000 		call rf_set_channel
+ 1920               	/* epilogue start */
+ 1922               	.LM251:
+ 1923 0880 0895      		ret
+ 1925               	.Lscope27:
+ 1927               		.stabd	78,0,0
+ 1932               	.global	rtl_tx_pkt
+ 1934               	rtl_tx_pkt:
+ 1935               		.stabd	46,0,0
+ 1937               	.LM252:
+ 1938               	.LFBB28:
+ 1939 0882 1F93      		push r17
+ 1940 0884 CF93      		push r28
+ 1941 0886 DF93      		push r29
+ 1942               	/* prologue: function */
+ 1943               	/* frame size = 0 */
+ 1944 0888 EC01      		movw r28,r24
+ 1945 088a 162F      		mov r17,r22
+ 1947               	.LM253:
+ 1948 088c 4132      		cpi r20,lo8(33)
+ 1949 088e 01F4      		brne .L121
+ 1951               	.LM254:
+ 1952 0890 0E94 0000 		call rand
+ 1953 0894 6091 0000 		lds r22,_rtl_contention_slots
+ 1954 0898 70E0      		ldi r23,lo8(0)
+ 1955 089a 0E94 0000 		call __divmodhi4
+ 1957               	.LM255:
+ 1958 089e 4FE1      		ldi r20,lo8(31)
+ 1959 08a0 481B      		sub r20,r24
+ 1961               	.LM256:
+ 1962 08a2 81E0      		ldi r24,lo8(1)
+ 1963 08a4 8093 0000 		sts _rtl_contention_pending,r24
+ 1964               	.L121:
+ 1966               	.LM257:
+ 1967 08a8 842F      		mov r24,r20
+ 1968 08aa 90E0      		ldi r25,lo8(0)
+ 1969 08ac FC01      		movw r30,r24
+ 1970 08ae EE0F      		lsl r30
+ 1971 08b0 FF1F      		rol r31
+ 1972 08b2 E80F      		add r30,r24
+ 1973 08b4 F91F      		adc r31,r25
+ 1974 08b6 E050      		subi r30,lo8(-(rtl_tx_info))
+ 1975 08b8 F040      		sbci r31,hi8(-(rtl_tx_info))
+ 1976 08ba D283      		std Z+2,r29
+ 1977 08bc C183      		std Z+1,r28
+ 1979               	.LM258:
+ 1980 08be 1083      		st Z,r17
+ 1982               	.LM259:
+ 1983 08c0 21E0      		ldi r18,lo8(1)
+ 1984 08c2 30E0      		ldi r19,hi8(1)
+ 1985 08c4 40E0      		ldi r20,hlo8(1)
+ 1986 08c6 50E0      		ldi r21,hhi8(1)
+ 1987 08c8 00C0      		rjmp 2f
+ 1988 08ca 220F      	1:	lsl r18
+ 1989 08cc 331F      		rol r19
+ 1990 08ce 441F      		rol r20
+ 1991 08d0 551F      		rol r21
+ 1992 08d2 8A95      	2:	dec r24
+ 1993 08d4 02F4      		brpl 1b
+ 1994 08d6 8091 0000 		lds r24,rtl_tx_data_ready
+ 1995 08da 9091 0000 		lds r25,(rtl_tx_data_ready)+1
+ 1996 08de A091 0000 		lds r26,(rtl_tx_data_ready)+2
+ 1997 08e2 B091 0000 		lds r27,(rtl_tx_data_ready)+3
+ 1998 08e6 822B      		or r24,r18
+ 1999 08e8 932B      		or r25,r19
+ 2000 08ea A42B      		or r26,r20
+ 2001 08ec B52B      		or r27,r21
+ 2002 08ee 8093 0000 		sts rtl_tx_data_ready,r24
+ 2003 08f2 9093 0000 		sts (rtl_tx_data_ready)+1,r25
+ 2004 08f6 A093 0000 		sts (rtl_tx_data_ready)+2,r26
+ 2005 08fa B093 0000 		sts (rtl_tx_data_ready)+3,r27
+ 2007               	.LM260:
+ 2008 08fe 81E0      		ldi r24,lo8(1)
+ 2009               	/* epilogue start */
+ 2010 0900 DF91      		pop r29
+ 2011 0902 CF91      		pop r28
+ 2012 0904 1F91      		pop r17
+ 2013 0906 0895      		ret
+ 2015               	.Lscope28:
+ 2017               		.stabd	78,0,0
+ 2019               	.global	rtl_nw_task
+ 2021               	rtl_nw_task:
+ 2022               		.stabd	46,0,0
+ 2024               	.LM261:
+ 2025               	.LFBB29:
+ 2026 0908 2F92      		push r2
+ 2027 090a 3F92      		push r3
+ 2028 090c 4F92      		push r4
+ 2029 090e 5F92      		push r5
+ 2030 0910 6F92      		push r6
+ 2031 0912 7F92      		push r7
+ 2032 0914 8F92      		push r8
+ 2033 0916 9F92      		push r9
+ 2034 0918 AF92      		push r10
+ 2035 091a BF92      		push r11
+ 2036 091c CF92      		push r12
+ 2037 091e DF92      		push r13
+ 2038 0920 EF92      		push r14
+ 2039 0922 FF92      		push r15
+ 2040 0924 0F93      		push r16
+ 2041 0926 1F93      		push r17
+ 2042 0928 CF93      		push r28
+ 2043 092a DF93      		push r29
+ 2044               	/* prologue: function */
+ 2045               	/* frame size = 0 */
+ 2047               	.LM262:
+ 2048 092c 1092 0000 		sts _rtl_ready,__zero_reg__
+ 2049               	.L124:
+ 2051               	.LM263:
+ 2052 0930 0E94 0000 		call nrk_wait_until_next_period
+ 2054               	.LM264:
+ 2055 0934 8091 0000 		lds r24,_rtl_ready
+ 2056 0938 8823      		tst r24
+ 2057 093a 01F0      		breq .L124
+ 2059               	.LM265:
+ 2060 093c 81E0      		ldi r24,lo8(1)
+ 2061 093e 8093 0000 		sts _rtl_ready,r24
+ 2063               	.LM266:
+ 2064 0942 1092 0000 		sts (last_slot)+1,__zero_reg__
+ 2065 0946 1092 0000 		sts last_slot,__zero_reg__
+ 2067               	.LM267:
+ 2068 094a 80E0      		ldi r24,lo8(last_slot_time)
+ 2069 094c 90E0      		ldi r25,hi8(last_slot_time)
+ 2070 094e 0E94 0000 		call nrk_time_get
+ 2072               	.LM268:
+ 2073 0952 01E0      		ldi r16,lo8(1)
+ 2075               	.LM269:
+ 2076 0954 812C      		mov r8,__zero_reg__
+ 2077 0956 B4E0      		ldi r27,hi8(1024)
+ 2078 0958 9B2E      		mov r9,r27
+ 2080               	.LM270:
+ 2081 095a A1E0      		ldi r26,lo8(1)
+ 2082 095c 4A2E      		mov r4,r26
+ 2083 095e 512C      		mov r5,__zero_reg__
+ 2084 0960 612C      		mov r6,__zero_reg__
+ 2085 0962 712C      		mov r7,__zero_reg__
+ 2087               	.LM271:
+ 2088 0964 F0E0      		ldi r31,lo8(rtl_tsync_buf)
+ 2089 0966 2F2E      		mov r2,r31
+ 2090 0968 F0E0      		ldi r31,hi8(rtl_tsync_buf)
+ 2091 096a 3F2E      		mov r3,r31
+ 2093               	.LM272:
+ 2094 096c E0E2      		ldi r30,lo8(32)
+ 2095 096e AE2E      		mov r10,r30
+ 2096 0970 B12C      		mov r11,__zero_reg__
+ 2097               	.L151:
+ 2099               	.LM273:
+ 2100 0972 0E94 0000 		call _nrk_high_speed_timer_get
+ 2101 0976 9093 0000 		sts (slot_start_time)+1,r25
+ 2102 097a 8093 0000 		sts slot_start_time,r24
+ 2104               	.LM274:
+ 2105 097e 80E0      		ldi r24,lo8(last_slot_time)
+ 2106 0980 90E0      		ldi r25,hi8(last_slot_time)
+ 2107 0982 0E94 0000 		call nrk_time_get
+ 2109               	.LM275:
+ 2110 0986 8091 0000 		lds r24,global_slot
+ 2111 098a 9091 0000 		lds r25,(global_slot)+1
+ 2112 098e 9093 0000 		sts (last_slot)+1,r25
+ 2113 0992 8093 0000 		sts last_slot,r24
+ 2115               	.LM276:
+ 2116 0996 24E0      		ldi r18,hi8(1025)
+ 2117 0998 8130      		cpi r24,lo8(1025)
+ 2118 099a 9207      		cpc r25,r18
+ 2119 099c 01F4      		brne .L125
+ 2121               	.LM277:
+ 2122 099e 1092 0000 		sts (last_slot)+1,__zero_reg__
+ 2123 09a2 1092 0000 		sts last_slot,__zero_reg__
+ 2124               	.L125:
+ 2126               	.LM278:
+ 2127 09a6 8091 0000 		lds r24,global_slot
+ 2128 09aa 9091 0000 		lds r25,(global_slot)+1
+ 2129 09ae 9093 0000 		sts (current_global_slot)+1,r25
+ 2130 09b2 8093 0000 		sts current_global_slot,r24
+ 2132               	.LM279:
+ 2133 09b6 8091 0000 		lds r24,global_slot
+ 2134 09ba 9091 0000 		lds r25,(global_slot)+1
+ 2135 09be 44E0      		ldi r20,hi8(1024)
+ 2136 09c0 8030      		cpi r24,lo8(1024)
+ 2137 09c2 9407      		cpc r25,r20
+ 2138 09c4 00F0      		brlo .L126
+ 2140               	.LM280:
+ 2141 09c6 1092 0000 		sts (global_slot)+1,__zero_reg__
+ 2142 09ca 1092 0000 		sts global_slot,__zero_reg__
+ 2144               	.LM281:
+ 2145 09ce 8091 0000 		lds r24,global_cycle
+ 2146 09d2 9091 0000 		lds r25,(global_cycle)+1
+ 2147 09d6 0196      		adiw r24,1
+ 2148 09d8 9093 0000 		sts (global_cycle)+1,r25
+ 2149 09dc 8093 0000 		sts global_cycle,r24
+ 2151               	.LM282:
+ 2152 09e0 E091 0000 		lds r30,cycle_callback
+ 2153 09e4 F091 0000 		lds r31,(cycle_callback)+1
+ 2154 09e8 3097      		sbiw r30,0
+ 2155 09ea 01F0      		breq .L127
+ 2157               	.LM283:
+ 2158 09ec 8091 0000 		lds r24,global_cycle
+ 2159 09f0 9091 0000 		lds r25,(global_cycle)+1
+ 2160 09f4 0995      		icall
+ 2161               	.L127:
+ 2163               	.LM284:
+ 2164 09f6 0E94 0000 		call _rtl_clear_sched_cache
+ 2166               	.LM285:
+ 2167 09fa 8091 0000 		lds r24,rtl_node_mode
+ 2168 09fe 8230      		cpi r24,lo8(2)
+ 2169 0a00 01F4      		brne .L126
+ 2171               	.LM286:
+ 2172 0a02 0093 0000 		sts _rtl_sync_ok,r16
+ 2173               	.L126:
+ 2175               	.LM287:
+ 2176 0a06 E091 0000 		lds r30,slot_callback
+ 2177 0a0a F091 0000 		lds r31,(slot_callback)+1
+ 2178 0a0e 3097      		sbiw r30,0
+ 2179 0a10 01F0      		breq .L128
+ 2181               	.LM288:
+ 2182 0a12 8091 0000 		lds r24,global_slot
+ 2183 0a16 9091 0000 		lds r25,(global_slot)+1
+ 2184 0a1a 0995      		icall
+ 2185               	.L128:
+ 2187               	.LM289:
+ 2188 0a1c 8091 0000 		lds r24,rtl_node_mode
+ 2189 0a20 8823      		tst r24
+ 2190 0a22 01F4      		brne .L129
+ 2192               	.LM290:
+ 2193 0a24 2091 0000 		lds r18,global_slot
+ 2194 0a28 3091 0000 		lds r19,(global_slot)+1
+ 2195 0a2c 8091 0000 		lds r24,last_sync_slot
+ 2196 0a30 9091 0000 		lds r25,(last_sync_slot)+1
+ 2197 0a34 0196      		adiw r24,1
+ 2198 0a36 2817      		cp r18,r24
+ 2199 0a38 3907      		cpc r19,r25
+ 2200 0a3a 01F4      		brne .L129
+ 2201               	.L148:
+ 2203               	.LM291:
+ 2204 0a3c 0E94 0000 		call _rtl_rx_sync
+ 2205 0a40 8823      		tst r24
+ 2206 0a42 01F0      		breq .L148
+ 2207               	.L129:
+ 2209               	.LM292:
+ 2210 0a44 8091 0000 		lds r24,global_slot
+ 2211 0a48 9091 0000 		lds r25,(global_slot)+1
+ 2212 0a4c 0E94 0000 		call _rtl_match_abs_wakeup
+ 2213 0a50 8130      		cpi r24,lo8(1)
+ 2214 0a52 01F4      		brne .L131
+ 2216               	.LM293:
+ 2217 0a54 E091 0000 		lds r30,abs_callback
+ 2218 0a58 F091 0000 		lds r31,(abs_callback)+1
+ 2219 0a5c 3097      		sbiw r30,0
+ 2220 0a5e 01F0      		breq .L131
+ 2222               	.LM294:
+ 2223 0a60 8091 0000 		lds r24,global_slot
+ 2224 0a64 9091 0000 		lds r25,(global_slot)+1
+ 2225 0a68 0995      		icall
+ 2226               	.L131:
+ 2228               	.LM295:
+ 2229 0a6a 8091 0000 		lds r24,global_slot
+ 2230 0a6e 9091 0000 		lds r25,(global_slot)+1
+ 2231 0a72 0E94 0000 		call rtl_get_slots_until_next_wakeup
+ 2232 0a76 EC01      		movw r28,r24
+ 2234               	.LM296:
+ 2235 0a78 8091 0000 		lds r24,global_slot
+ 2236 0a7c 9091 0000 		lds r25,(global_slot)+1
+ 2237 0a80 0E94 0000 		call _rtl_get_next_abs_wakeup
+ 2239               	.LM297:
+ 2240 0a84 0097      		sbiw r24,0
+ 2241 0a86 01F0      		breq .L132
+ 2243               	.LM298:
+ 2244 0a88 2097      		sbiw r28,0
+ 2245 0a8a 01F0      		breq .L152
+ 2247               	.LM299:
+ 2248 0a8c 8C17      		cp r24,r28
+ 2249 0a8e 9D07      		cpc r25,r29
+ 2250 0a90 00F0      		brlo .L152
+ 2251 0a92 00C0      		rjmp .L134
+ 2252               	.L132:
+ 2254               	.LM300:
+ 2255 0a94 2097      		sbiw r28,0
+ 2256 0a96 01F4      		brne .L134
+ 2258               	.LM301:
+ 2259 0a98 C091 0000 		lds r28,global_slot
+ 2260 0a9c D091 0000 		lds r29,(global_slot)+1
+ 2261 0aa0 C401      		movw r24,r8
+ 2262 0aa2 8C1B      		sub r24,r28
+ 2263 0aa4 9D0B      		sbc r25,r29
+ 2264               	.L152:
+ 2265 0aa6 EC01      		movw r28,r24
+ 2266               	.L134:
+ 2268               	.LM302:
+ 2269 0aa8 8091 0000 		lds r24,global_slot
+ 2270 0aac 9091 0000 		lds r25,(global_slot)+1
+ 2271 0ab0 182F      		mov r17,r24
+ 2272 0ab2 1F71      		andi r17,lo8(31)
+ 2274               	.LM303:
+ 2275 0ab4 8091 0000 		lds r24,rtl_node_mode
+ 2276 0ab8 8230      		cpi r24,lo8(2)
+ 2277 0aba 01F4      		brne .L136
+ 2278 0abc 8091 0000 		lds r24,global_slot
+ 2279 0ac0 9091 0000 		lds r25,(global_slot)+1
+ 2280 0ac4 0097      		sbiw r24,0
+ 2281 0ac6 01F0      		breq .+2
+ 2282 0ac8 00C0      		rjmp .L137
+ 2284               	.LM304:
+ 2285 0aca 8091 0000 		lds r24,_rtl_time_token
+ 2286 0ace 8F5F      		subi r24,lo8(-(1))
+ 2287 0ad0 8093 0000 		sts _rtl_time_token,r24
+ 2289               	.LM305:
+ 2290 0ad4 87FF      		sbrs r24,7
+ 2291 0ad6 00C0      		rjmp .L137
+ 2292 0ad8 1092 0000 		sts _rtl_time_token,__zero_reg__
+ 2293 0adc 00C0      		rjmp .L137
+ 2294               	.L146:
+ 2296               	.LM306:
+ 2297 0ade 1092 0000 		sts _rtl_time_token_status,__zero_reg__
+ 2298               	.L136:
+ 2300               	.LM307:
+ 2301 0ae2 212F      		mov r18,r17
+ 2302 0ae4 30E0      		ldi r19,lo8(0)
+ 2303 0ae6 7301      		movw r14,r6
+ 2304 0ae8 6201      		movw r12,r4
+ 2305 0aea 012E      		mov r0,r17
+ 2306 0aec 00C0      		rjmp 2f
+ 2307 0aee CC0C      	1:	lsl r12
+ 2308 0af0 DD1C      		rol r13
+ 2309 0af2 EE1C      		rol r14
+ 2310 0af4 FF1C      		rol r15
+ 2311 0af6 0A94      	2:	dec r0
+ 2312 0af8 02F4      		brpl 1b
+ 2314               	.LM308:
+ 2315 0afa 8091 0000 		lds r24,_rtl_time_token_status
+ 2316 0afe 8823      		tst r24
+ 2317 0b00 01F0      		breq .+2
+ 2318 0b02 00C0      		rjmp .L138
+ 2320               	.LM309:
+ 2321 0b04 8091 0000 		lds r24,rtl_tdma_tx_mask
+ 2322 0b08 9091 0000 		lds r25,(rtl_tdma_tx_mask)+1
+ 2323 0b0c A091 0000 		lds r26,(rtl_tdma_tx_mask)+2
+ 2324 0b10 B091 0000 		lds r27,(rtl_tdma_tx_mask)+3
+ 2325 0b14 8C21      		and r24,r12
+ 2326 0b16 9D21      		and r25,r13
+ 2327 0b18 AE21      		and r26,r14
+ 2328 0b1a BF21      		and r27,r15
+ 2329 0b1c 0097      		sbiw r24,0
+ 2330 0b1e A105      		cpc r26,__zero_reg__
+ 2331 0b20 B105      		cpc r27,__zero_reg__
+ 2332 0b22 01F0      		breq .L138
+ 2334               	.LM310:
+ 2335 0b24 8091 0000 		lds r24,rtl_tx_data_ready
+ 2336 0b28 9091 0000 		lds r25,(rtl_tx_data_ready)+1
+ 2337 0b2c A091 0000 		lds r26,(rtl_tx_data_ready)+2
+ 2338 0b30 B091 0000 		lds r27,(rtl_tx_data_ready)+3
+ 2339 0b34 8C21      		and r24,r12
+ 2340 0b36 9D21      		and r25,r13
+ 2341 0b38 AE21      		and r26,r14
+ 2342 0b3a BF21      		and r27,r15
+ 2343 0b3c 0097      		sbiw r24,0
+ 2344 0b3e A105      		cpc r26,__zero_reg__
+ 2345 0b40 B105      		cpc r27,__zero_reg__
+ 2346 0b42 01F4      		brne .L139
+ 2348               	.LM311:
+ 2349 0b44 3092 0000 		sts (rtl_tsync_tx+3)+1,r3
+ 2350 0b48 2092 0000 		sts rtl_tsync_tx+3,r2
+ 2352               	.LM312:
+ 2353 0b4c 8091 0000 		lds r24,rtl_tsync_buf+2
+ 2354 0b50 8068      		ori r24,lo8(-128)
+ 2355 0b52 8093 0000 		sts rtl_tsync_buf+2,r24
+ 2357               	.LM313:
+ 2358 0b56 93E0      		ldi r25,lo8(3)
+ 2359 0b58 9093 0000 		sts rtl_tsync_tx+2,r25
+ 2361               	.LM314:
+ 2362 0b5c 8091 0000 		lds r24,_rtl_contention_slots
+ 2363 0b60 A501      		movw r20,r10
+ 2364 0b62 481B      		sub r20,r24
+ 2365 0b64 5109      		sbc r21,__zero_reg__
+ 2366 0b66 4217      		cp r20,r18
+ 2367 0b68 5307      		cpc r21,r19
+ 2368 0b6a 04F4      		brge .L140
+ 2370               	.LM315:
+ 2371 0b6c 8091 0000 		lds r24,_rtl_contention_pending
+ 2372 0b70 8823      		tst r24
+ 2373 0b72 01F4      		brne .L139
+ 2375               	.LM316:
+ 2376 0b74 80E0      		ldi r24,lo8(rtl_tsync_tx)
+ 2377 0b76 90E0      		ldi r25,hi8(rtl_tsync_tx)
+ 2378 0b78 63E0      		ldi r22,lo8(3)
+ 2379 0b7a 41E2      		ldi r20,lo8(33)
+ 2380 0b7c 00C0      		rjmp .L153
+ 2381               	.L140:
+ 2383               	.LM317:
+ 2384 0b7e 80E0      		ldi r24,lo8(rtl_tsync_tx)
+ 2385 0b80 90E0      		ldi r25,hi8(rtl_tsync_tx)
+ 2386 0b82 63E0      		ldi r22,lo8(3)
+ 2387 0b84 412F      		mov r20,r17
+ 2388               	.L153:
+ 2389 0b86 0E94 0000 		call rtl_tx_pkt
+ 2390               	.L139:
+ 2392               	.LM318:
+ 2393 0b8a 0093 0000 		sts _rtl_time_token_status,r16
+ 2394               	.L138:
+ 2396               	.LM319:
+ 2397 0b8e 2091 0000 		lds r18,global_slot
+ 2398 0b92 3091 0000 		lds r19,(global_slot)+1
+ 2399 0b96 8091 0000 		lds r24,last_sync_slot
+ 2400 0b9a 9091 0000 		lds r25,(last_sync_slot)+1
+ 2401 0b9e 2817      		cp r18,r24
+ 2402 0ba0 3907      		cpc r19,r25
+ 2403 0ba2 01F4      		brne .+2
+ 2404 0ba4 00C0      		rjmp .L141
+ 2406               	.LM320:
+ 2407 0ba6 8091 0000 		lds r24,rtl_tdma_tx_mask
+ 2408 0baa 9091 0000 		lds r25,(rtl_tdma_tx_mask)+1
+ 2409 0bae A091 0000 		lds r26,(rtl_tdma_tx_mask)+2
+ 2410 0bb2 B091 0000 		lds r27,(rtl_tdma_tx_mask)+3
+ 2411 0bb6 2091 0000 		lds r18,rtl_tx_data_ready
+ 2412 0bba 3091 0000 		lds r19,(rtl_tx_data_ready)+1
+ 2413 0bbe 4091 0000 		lds r20,(rtl_tx_data_ready)+2
+ 2414 0bc2 5091 0000 		lds r21,(rtl_tx_data_ready)+3
+ 2415 0bc6 8223      		and r24,r18
+ 2416 0bc8 9323      		and r25,r19
+ 2417 0bca A423      		and r26,r20
+ 2418 0bcc B523      		and r27,r21
+ 2419 0bce 8C21      		and r24,r12
+ 2420 0bd0 9D21      		and r25,r13
+ 2421 0bd2 AE21      		and r26,r14
+ 2422 0bd4 BF21      		and r27,r15
+ 2423 0bd6 0097      		sbiw r24,0
+ 2424 0bd8 A105      		cpc r26,__zero_reg__
+ 2425 0bda B105      		cpc r27,__zero_reg__
+ 2426 0bdc 01F0      		breq .L142
+ 2428               	.LM321:
+ 2429 0bde 812F      		mov r24,r17
+ 2430 0be0 0E94 0000 		call _rtl_tx
+ 2431 0be4 00C0      		rjmp .L141
+ 2432               	.L142:
+ 2434               	.LM322:
+ 2435 0be6 8091 0000 		lds r24,rtl_tdma_rx_mask
+ 2436 0bea 9091 0000 		lds r25,(rtl_tdma_rx_mask)+1
+ 2437 0bee A091 0000 		lds r26,(rtl_tdma_rx_mask)+2
+ 2438 0bf2 B091 0000 		lds r27,(rtl_tdma_rx_mask)+3
+ 2439 0bf6 8C21      		and r24,r12
+ 2440 0bf8 9D21      		and r25,r13
+ 2441 0bfa AE21      		and r26,r14
+ 2442 0bfc BF21      		and r27,r15
+ 2443 0bfe 0097      		sbiw r24,0
+ 2444 0c00 A105      		cpc r26,__zero_reg__
+ 2445 0c02 B105      		cpc r27,__zero_reg__
+ 2446 0c04 01F0      		breq .L143
+ 2447 0c06 8091 0000 		lds r24,rtl_rx_data_ready
+ 2448 0c0a 8823      		tst r24
+ 2449 0c0c 01F4      		brne .L143
+ 2451               	.LM323:
+ 2452 0c0e 812F      		mov r24,r17
+ 2453 0c10 0E94 0000 		call _rtl_rx
+ 2455               	.LM324:
+ 2456 0c14 00C0      		rjmp .L141
+ 2457               	.L143:
+ 2459               	.LM325:
+ 2460 0c16 2091 0000 		lds r18,global_slot
+ 2461 0c1a 3091 0000 		lds r19,(global_slot)+1
+ 2462 0c1e 8091 0000 		lds r24,rtl_abs_tx_slot
+ 2463 0c22 9091 0000 		lds r25,(rtl_abs_tx_slot)+1
+ 2464 0c26 2817      		cp r18,r24
+ 2465 0c28 3907      		cpc r19,r25
+ 2466 0c2a 01F4      		brne .L141
+ 2467 0c2c 8091 0000 		lds r24,rtl_abs_tx_ready
+ 2468 0c30 8130      		cpi r24,lo8(1)
+ 2469 0c32 01F4      		brne .L141
+ 2471               	.LM326:
+ 2472 0c34 81E2      		ldi r24,lo8(33)
+ 2473 0c36 0E94 0000 		call _rtl_tx
+ 2475               	.LM327:
+ 2476 0c3a 1092 0000 		sts rtl_abs_tx_ready,__zero_reg__
+ 2477               	.L141:
+ 2479               	.LM328:
+ 2480 0c3e 2091 0000 		lds r18,global_slot
+ 2481 0c42 3091 0000 		lds r19,(global_slot)+1
+ 2482 0c46 8091 0000 		lds r24,last_sync_slot
+ 2483 0c4a 9091 0000 		lds r25,(last_sync_slot)+1
+ 2484 0c4e 2817      		cp r18,r24
+ 2485 0c50 3907      		cpc r19,r25
+ 2486 0c52 01F4      		brne .L144
+ 2487 0c54 8091 0000 		lds r24,rtl_node_mode
+ 2488 0c58 8230      		cpi r24,lo8(2)
+ 2489 0c5a 01F0      		breq .L144
+ 2491               	.LM329:
+ 2492 0c5c 8091 0000 		lds r24,global_slot
+ 2493 0c60 9091 0000 		lds r25,(global_slot)+1
+ 2494 0c64 0196      		adiw r24,1
+ 2495 0c66 9093 0000 		sts (global_slot)+1,r25
+ 2496 0c6a 8093 0000 		sts global_slot,r24
+ 2498               	.LM330:
+ 2499 0c6e 85E0      		ldi r24,lo8(5)
+ 2500 0c70 90E0      		ldi r25,hi8(5)
+ 2501 0c72 0E94 0000 		call nrk_wait_until_ticks
+ 2503               	.LM331:
+ 2504 0c76 00C0      		rjmp .L151
+ 2505               	.L144:
+ 2507               	.LM332:
+ 2508 0c78 8091 0000 		lds r24,global_slot
+ 2509 0c7c 9091 0000 		lds r25,(global_slot)+1
+ 2510 0c80 8C0F      		add r24,r28
+ 2511 0c82 9D1F      		adc r25,r29
+ 2512 0c84 9093 0000 		sts (global_slot)+1,r25
+ 2513 0c88 8093 0000 		sts global_slot,r24
+ 2515               	.LM333:
+ 2516 0c8c 80E0      		ldi r24,lo8(0)
+ 2517 0c8e 90E0      		ldi r25,hi8(0)
+ 2518 0c90 0E94 0000 		call nrk_led_clr
+ 2520               	.LM334:
+ 2521 0c94 CE01      		movw r24,r28
+ 2522 0c96 0E94 0000 		call nrk_wait_until_next_n_periods
+ 2524               	.LM335:
+ 2525 0c9a 80E0      		ldi r24,lo8(0)
+ 2526 0c9c 90E0      		ldi r25,hi8(0)
+ 2527 0c9e 0E94 0000 		call nrk_led_set
+ 2528 0ca2 00C0      		rjmp .L151
+ 2529               	.L137:
+ 2531               	.LM336:
+ 2532 0ca4 1123      		tst r17
+ 2533 0ca6 01F4      		brne .+2
+ 2534 0ca8 00C0      		rjmp .L146
+ 2535 0caa 00C0      		rjmp .L136
+ 2543               	.Lscope29:
+ 2545               		.stabd	78,0,0
+ 2547               	.global	rtl_get_global_slot
+ 2549               	rtl_get_global_slot:
+ 2550               		.stabd	46,0,0
+ 2552               	.LM337:
+ 2553               	.LFBB30:
+ 2554 0cac 8F92      		push r8
+ 2555 0cae 9F92      		push r9
+ 2556 0cb0 AF92      		push r10
+ 2557 0cb2 BF92      		push r11
+ 2558 0cb4 CF92      		push r12
+ 2559 0cb6 DF92      		push r13
+ 2560 0cb8 EF92      		push r14
+ 2561 0cba FF92      		push r15
+ 2562 0cbc 0F93      		push r16
+ 2563 0cbe 1F93      		push r17
+ 2564 0cc0 DF93      		push r29
+ 2565 0cc2 CF93      		push r28
+ 2566 0cc4 CDB7      		in r28,__SP_L__
+ 2567 0cc6 DEB7      		in r29,__SP_H__
+ 2568 0cc8 2897      		sbiw r28,8
+ 2569 0cca 0FB6      		in __tmp_reg__,__SREG__
+ 2570 0ccc F894      		cli
+ 2571 0cce DEBF      		out __SP_H__,r29
+ 2572 0cd0 0FBE      		out __SREG__,__tmp_reg__
+ 2573 0cd2 CDBF      		out __SP_L__,r28
+ 2574               	/* prologue: function */
+ 2575               	/* frame size = 8 */
+ 2577               	.LM338:
+ 2578 0cd4 8E01      		movw r16,r28
+ 2579 0cd6 0F5F      		subi r16,lo8(-(1))
+ 2580 0cd8 1F4F      		sbci r17,hi8(-(1))
+ 2581 0cda C801      		movw r24,r16
+ 2582 0cdc 0E94 0000 		call nrk_time_get
+ 2584               	.LM339:
+ 2585 0ce0 C801      		movw r24,r16
+ 2586 0ce2 0981      		ldd r16,Y+1
+ 2587 0ce4 1A81      		ldd r17,Y+2
+ 2588 0ce6 2B81      		ldd r18,Y+3
+ 2589 0ce8 3C81      		ldd r19,Y+4
+ 2590 0cea 4D81      		ldd r20,Y+5
+ 2591 0cec 5E81      		ldd r21,Y+6
+ 2592 0cee 6F81      		ldd r22,Y+7
+ 2593 0cf0 7885      		ldd r23,Y+8
+ 2594 0cf2 8090 0000 		lds r8,last_slot_time
+ 2595 0cf6 9090 0000 		lds r9,last_slot_time+1
+ 2596 0cfa A090 0000 		lds r10,last_slot_time+2
+ 2597 0cfe B090 0000 		lds r11,last_slot_time+3
+ 2598 0d02 C090 0000 		lds r12,last_slot_time+4
+ 2599 0d06 D090 0000 		lds r13,last_slot_time+5
+ 2600 0d0a E090 0000 		lds r14,last_slot_time+6
+ 2601 0d0e F090 0000 		lds r15,last_slot_time+7
+ 2602 0d12 0E94 0000 		call nrk_time_sub
+ 2604               	.LM340:
+ 2605 0d16 6981      		ldd r22,Y+1
+ 2606 0d18 7A81      		ldd r23,Y+2
+ 2607 0d1a 8B81      		ldd r24,Y+3
+ 2608 0d1c 9C81      		ldd r25,Y+4
+ 2609 0d1e 20E0      		ldi r18,lo8(1000000000)
+ 2610 0d20 3AEC      		ldi r19,hi8(1000000000)
+ 2611 0d22 4AE9      		ldi r20,hlo8(1000000000)
+ 2612 0d24 5BE3      		ldi r21,hhi8(1000000000)
+ 2613 0d26 0E94 0000 		call __mulsi3
+ 2614 0d2a 2D81      		ldd r18,Y+5
+ 2615 0d2c 3E81      		ldd r19,Y+6
+ 2616 0d2e 4F81      		ldd r20,Y+7
+ 2617 0d30 5885      		ldd r21,Y+8
+ 2618 0d32 620F      		add r22,r18
+ 2619 0d34 731F      		adc r23,r19
+ 2620 0d36 841F      		adc r24,r20
+ 2621 0d38 951F      		adc r25,r21
+ 2622 0d3a 28EA      		ldi r18,lo8(8793000)
+ 2623 0d3c 3BE2      		ldi r19,hi8(8793000)
+ 2624 0d3e 46E8      		ldi r20,hlo8(8793000)
+ 2625 0d40 50E0      		ldi r21,hhi8(8793000)
+ 2626 0d42 0E94 0000 		call __udivmodsi4
+ 2627 0d46 8091 0000 		lds r24,last_slot
+ 2628 0d4a 9091 0000 		lds r25,(last_slot)+1
+ 2629 0d4e 280F      		add r18,r24
+ 2630 0d50 391F      		adc r19,r25
+ 2632               	.LM341:
+ 2633 0d52 C901      		movw r24,r18
+ 2634               	/* epilogue start */
+ 2635 0d54 2896      		adiw r28,8
+ 2636 0d56 0FB6      		in __tmp_reg__,__SREG__
+ 2637 0d58 F894      		cli
+ 2638 0d5a DEBF      		out __SP_H__,r29
+ 2639 0d5c 0FBE      		out __SREG__,__tmp_reg__
+ 2640 0d5e CDBF      		out __SP_L__,r28
+ 2641 0d60 CF91      		pop r28
+ 2642 0d62 DF91      		pop r29
+ 2643 0d64 1F91      		pop r17
+ 2644 0d66 0F91      		pop r16
+ 2645 0d68 FF90      		pop r15
+ 2646 0d6a EF90      		pop r14
+ 2647 0d6c DF90      		pop r13
+ 2648 0d6e CF90      		pop r12
+ 2649 0d70 BF90      		pop r11
+ 2650 0d72 AF90      		pop r10
+ 2651 0d74 9F90      		pop r9
+ 2652 0d76 8F90      		pop r8
+ 2653 0d78 0895      		ret
+ 2658               	.Lscope30:
+ 2660               		.stabd	78,0,0
+ 2662               	.global	rtl_wait_until_rx_or_tx
+ 2664               	rtl_wait_until_rx_or_tx:
+ 2665               		.stabd	46,0,0
+ 2667               	.LM342:
+ 2668               	.LFBB31:
+ 2669               	/* prologue: function */
+ 2670               	/* frame size = 0 */
+ 2672               	.LM343:
+ 2673 0d7a 8091 0000 		lds r24,rtl_rx_pkt_signal
+ 2674 0d7e 0E94 0000 		call nrk_signal_register
+ 2676               	.LM344:
+ 2677 0d82 8091 0000 		lds r24,rtl_tx_done_signal
+ 2678 0d86 0E94 0000 		call nrk_signal_register
+ 2680               	.LM345:
+ 2681 0d8a 21E0      		ldi r18,lo8(1)
+ 2682 0d8c 30E0      		ldi r19,hi8(1)
+ 2683 0d8e 40E0      		ldi r20,hlo8(1)
+ 2684 0d90 50E0      		ldi r21,hhi8(1)
+ 2685 0d92 CA01      		movw r24,r20
+ 2686 0d94 B901      		movw r22,r18
+ 2687 0d96 0090 0000 		lds r0,rtl_tx_done_signal
+ 2688 0d9a 00C0      		rjmp 2f
+ 2689 0d9c 660F      	1:	lsl r22
+ 2690 0d9e 771F      		rol r23
+ 2691 0da0 881F      		rol r24
+ 2692 0da2 991F      		rol r25
+ 2693 0da4 0A94      	2:	dec r0
+ 2694 0da6 02F4      		brpl 1b
+ 2695 0da8 0090 0000 		lds r0,rtl_rx_pkt_signal
+ 2696 0dac 00C0      		rjmp 2f
+ 2697 0dae 220F      	1:	lsl r18
+ 2698 0db0 331F      		rol r19
+ 2699 0db2 441F      		rol r20
+ 2700 0db4 551F      		rol r21
+ 2701 0db6 0A94      	2:	dec r0
+ 2702 0db8 02F4      		brpl 1b
+ 2703 0dba 622B      		or r22,r18
+ 2704 0dbc 732B      		or r23,r19
+ 2705 0dbe 842B      		or r24,r20
+ 2706 0dc0 952B      		or r25,r21
+ 2707 0dc2 0E94 0000 		call nrk_event_wait
+ 2709               	.LM346:
+ 2710 0dc6 81E0      		ldi r24,lo8(1)
+ 2711               	/* epilogue start */
+ 2712 0dc8 0895      		ret
+ 2714               	.Lscope31:
+ 2716               		.stabd	78,0,0
+ 2718               	.global	rtl_wait_until_rx_pkt
+ 2720               	rtl_wait_until_rx_pkt:
+ 2721               		.stabd	46,0,0
+ 2723               	.LM347:
+ 2724               	.LFBB32:
+ 2725               	/* prologue: function */
+ 2726               	/* frame size = 0 */
+ 2728               	.LM348:
+ 2729 0dca 8091 0000 		lds r24,rtl_rx_pkt_signal
+ 2730 0dce 0E94 0000 		call nrk_signal_register
+ 2732               	.LM349:
+ 2733 0dd2 8091 0000 		lds r24,rtl_rx_data_ready
+ 2734 0dd6 8823      		tst r24
+ 2735 0dd8 01F4      		brne .L159
+ 2737               	.LM350:
+ 2738 0dda 61E0      		ldi r22,lo8(1)
+ 2739 0ddc 70E0      		ldi r23,hi8(1)
+ 2740 0dde 80E0      		ldi r24,hlo8(1)
+ 2741 0de0 90E0      		ldi r25,hhi8(1)
+ 2742 0de2 0090 0000 		lds r0,rtl_rx_pkt_signal
+ 2743 0de6 00C0      		rjmp 2f
+ 2744 0de8 660F      	1:	lsl r22
+ 2745 0dea 771F      		rol r23
+ 2746 0dec 881F      		rol r24
+ 2747 0dee 991F      		rol r25
+ 2748 0df0 0A94      	2:	dec r0
+ 2749 0df2 02F4      		brpl 1b
+ 2750 0df4 0E94 0000 		call nrk_event_wait
+ 2751               	.L159:
+ 2753               	.LM351:
+ 2754 0df8 81E0      		ldi r24,lo8(1)
+ 2755               	/* epilogue start */
+ 2756 0dfa 0895      		ret
+ 2758               	.Lscope32:
+ 2760               		.stabd	78,0,0
+ 2763               	.global	rtl_wait_until_tx_done
+ 2765               	rtl_wait_until_tx_done:
+ 2766               		.stabd	46,0,0
+ 2768               	.LM352:
+ 2769               	.LFBB33:
+ 2770 0dfc 8F92      		push r8
+ 2771 0dfe 9F92      		push r9
+ 2772 0e00 AF92      		push r10
+ 2773 0e02 BF92      		push r11
+ 2774 0e04 DF92      		push r13
+ 2775 0e06 EF92      		push r14
+ 2776 0e08 FF92      		push r15
+ 2777 0e0a 0F93      		push r16
+ 2778 0e0c 1F93      		push r17
+ 2779               	/* prologue: function */
+ 2780               	/* frame size = 0 */
+ 2781 0e0e D82E      		mov r13,r24
+ 2783               	.LM353:
+ 2784 0e10 8091 0000 		lds r24,rtl_tx_done_signal
+ 2785 0e14 0E94 0000 		call nrk_signal_register
+ 2786 0e18 91E0      		ldi r25,lo8(1)
+ 2787 0e1a E92E      		mov r14,r25
+ 2788 0e1c F12C      		mov r15,__zero_reg__
+ 2789 0e1e 012D      		mov r16,__zero_reg__
+ 2790 0e20 112D      		mov r17,__zero_reg__
+ 2791 0e22 0D2C      		mov r0,r13
+ 2792 0e24 00C0      		rjmp 2f
+ 2793 0e26 EE0C      	1:	lsl r14
+ 2794 0e28 FF1C      		rol r15
+ 2795 0e2a 001F      		rol r16
+ 2796 0e2c 111F      		rol r17
+ 2797 0e2e 0A94      	2:	dec r0
+ 2798 0e30 02F4      		brpl 1b
+ 2800               	.LM354:
+ 2801 0e32 81E0      		ldi r24,lo8(1)
+ 2802 0e34 882E      		mov r8,r24
+ 2803 0e36 912C      		mov r9,__zero_reg__
+ 2804 0e38 A12C      		mov r10,__zero_reg__
+ 2805 0e3a B12C      		mov r11,__zero_reg__
+ 2807               	.LM355:
+ 2808 0e3c 00C0      		rjmp .L162
+ 2809               	.L164:
+ 2811               	.LM356:
+ 2812 0e3e C501      		movw r24,r10
+ 2813 0e40 B401      		movw r22,r8
+ 2814 0e42 0090 0000 		lds r0,rtl_tx_done_signal
+ 2815 0e46 00C0      		rjmp 2f
+ 2816 0e48 660F      	1:	lsl r22
+ 2817 0e4a 771F      		rol r23
+ 2818 0e4c 881F      		rol r24
+ 2819 0e4e 991F      		rol r25
+ 2820 0e50 0A94      	2:	dec r0
+ 2821 0e52 02F4      		brpl 1b
+ 2822 0e54 0E94 0000 		call nrk_event_wait
+ 2823               	.L162:
+ 2824               	.LBB32:
+ 2825               	.LBB33:
+ 2827               	.LM357:
+ 2828 0e58 81E2      		ldi r24,lo8(33)
+ 2829 0e5a D816      		cp r13,r24
+ 2830 0e5c 01F4      		brne .L163
+ 2831               	.LBE33:
+ 2832               	.LBE32:
+ 2834               	.LM358:
+ 2835 0e5e 8091 0000 		lds r24,_rtl_contention_pending
+ 2836 0e62 8823      		tst r24
+ 2837 0e64 01F4      		brne .L164
+ 2838 0e66 00C0      		rjmp .L165
+ 2839               	.L163:
+ 2840               	.LBB35:
+ 2841               	.LBB34:
+ 2843               	.LM359:
+ 2844 0e68 8091 0000 		lds r24,rtl_tx_data_ready
+ 2845 0e6c 9091 0000 		lds r25,(rtl_tx_data_ready)+1
+ 2846 0e70 A091 0000 		lds r26,(rtl_tx_data_ready)+2
+ 2847 0e74 B091 0000 		lds r27,(rtl_tx_data_ready)+3
+ 2848 0e78 8E21      		and r24,r14
+ 2849 0e7a 9F21      		and r25,r15
+ 2850 0e7c A023      		and r26,r16
+ 2851 0e7e B123      		and r27,r17
+ 2852 0e80 0097      		sbiw r24,0
+ 2853 0e82 A105      		cpc r26,__zero_reg__
+ 2854 0e84 B105      		cpc r27,__zero_reg__
+ 2855 0e86 01F4      		brne .L164
+ 2856               	.L165:
+ 2857               	.LBE34:
+ 2858               	.LBE35:
+ 2860               	.LM360:
+ 2861 0e88 81E0      		ldi r24,lo8(1)
+ 2862               	/* epilogue start */
+ 2863 0e8a 1F91      		pop r17
+ 2864 0e8c 0F91      		pop r16
+ 2865 0e8e FF90      		pop r15
+ 2866 0e90 EF90      		pop r14
+ 2867 0e92 DF90      		pop r13
+ 2868 0e94 BF90      		pop r11
+ 2869 0e96 AF90      		pop r10
+ 2870 0e98 9F90      		pop r9
+ 2871 0e9a 8F90      		pop r8
+ 2872 0e9c 0895      		ret
+ 2874               	.Lscope33:
+ 2876               		.stabd	78,0,0
+ 2877               		.section	.progmem.data,"a",@progbits
+ 2880               	__c.2730:
+ 2881 0000 5254 2D4C 		.string	"RT-Link ERROR: creating tx signal failed\r\n"
+ 2881      696E 6B20 
+ 2881      4552 524F 
+ 2881      523A 2063 
+ 2881      7265 6174 
+ 2884               	__c.2728:
+ 2885 002b 5254 2D4C 		.string	"RT-Link ERROR: creating rx signal failed\r\n"
+ 2885      696E 6B20 
+ 2885      4552 524F 
+ 2885      523A 2063 
+ 2885      7265 6174 
+ 2886               		.comm _nrk_signal_list,4,1
+ 2887               		.comm nrk_idle_task_stk,128,1
+ 2888               		.comm nrk_kernel_stk_ptr,2,1
+ 2889               		.comm rtl_task,35,1
+ 2890               		.comm rtl_task_stack,128,1
+ 2891               		.comm rtl_node_mode,1,1
+ 2892               		.comm last_slot,2,1
+ 2893               		.comm last_slot_time,8,1
+ 2894               		.comm _rtl_sync_ok,1,1
+ 2895               		.comm _rtl_ready,1,1
+ 2896               		.comm _rtl_time_token,1,1
+ 2897               		.comm _rtl_time_token_status,1,1
+ 2898               		.comm rtl_tsync_tx,7,1
+ 2899               		.comm rtl_tsync_buf,3,1
+ 2900               		.comm _rtl_contention_pending,1,1
+ 2901               		.comm _rtl_contention_slots,1,1
+ 2902               		.comm rtl_rfRxInfo,9,1
+ 2903               		.comm rtl_rx_data_ready,1,1
+ 2904               		.comm rtl_rx_slot,1,1
+ 2905               		.comm rtl_rx_buf,116,1
+ 2906               		.comm rtl_rfTxInfo,7,1
+ 2907               		.comm rtl_tx_info,99,1
+ 2908               		.comm rtl_abs_tx_slot,2,1
+ 2909               		.comm rtl_abs_tx_ready,1,1
+ 2910               		.comm rtl_tx_data_ready,4,1
+ 2911               		.comm rtl_param,9,1
+ 2912               		.comm rtl_tdma_rx_mask,4,1
+ 2913               		.comm rtl_tdma_tx_mask,4,1
+ 2914               		.comm rx_callback,2,1
+ 2915               		.comm tx_callback,2,1
+ 2916               		.comm abs_callback,2,1
+ 2917               		.comm slot_callback,2,1
+ 2918               		.comm cycle_callback,2,1
+ 2919               		.comm rtl_sched,16,1
+ 2920               		.comm rtl_sched_cache,32,1
+ 2921               		.comm rtl_abs_wakeup,8,1
+ 2922               		.comm prev_offset,2,1
+ 2923               		.comm rtl_drift_rate,2,1
+ 2924               		.comm _tsync_index,1,1
+ 2925               		.comm _dbg_index,1,1
+ 2926               		.comm pkt_log,8,1
+ 2927               		.comm tsync_log,8,1
+ 2928               		.comm tsync_delay,8,1
+ 2929               		.comm _nrk_prev_timer_val,1,1
+ 2930               		.comm _nrk_time_trigger,1,1
+ 2931               		.comm app_timer0_callback,2,1
+ 2932               		.comm app_timer0_prescale,1,1
+ 2933               		.comm error_task,1,1
+ 2934               		.comm error_num,1,1
+ 2935               		.comm global_slot,2,1
+ 2936               		.comm current_global_slot,2,1
+ 2937               		.comm global_cycle,2,1
+ 2938               		.comm last_sync_slot,2,1
+ 2939               		.comm slot_start_time,2,1
+ 2940               		.comm rtl_tx_done_signal,1,1
+ 2941               		.comm rtl_rx_pkt_signal,1,1
+ 2998               		.text
+ 3000               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 rt_link.c
+     /tmp/ccXxwbb2.s:2      *ABS*:0000003f __SREG__
+     /tmp/ccXxwbb2.s:3      *ABS*:0000003e __SP_H__
+     /tmp/ccXxwbb2.s:4      *ABS*:0000003d __SP_L__
+     /tmp/ccXxwbb2.s:5      *ABS*:00000000 __tmp_reg__
+     /tmp/ccXxwbb2.s:6      *ABS*:00000001 __zero_reg__
+     /tmp/ccXxwbb2.s:156    .text:00000000 rtl_get_tx_done_signal
+                            *COM*:00000001 _rtl_ready
+                            *COM*:00000001 rtl_tx_done_signal
+     /tmp/ccXxwbb2.s:188    .text:00000012 rtl_get_rx_pkt_signal
+                            *COM*:00000001 rtl_rx_pkt_signal
+     /tmp/ccXxwbb2.s:221    .text:00000024 rtl_wait_until_global_slot
+     /tmp/ccXxwbb2.s:240    .text:00000028 rtl_ready
+     /tmp/ccXxwbb2.s:269    .text:00000038 rtl_rx_pkt_get
+                            *COM*:00000001 rtl_rx_data_ready
+                            *COM*:00000009 rtl_rfRxInfo
+                            *COM*:00000001 rtl_rx_slot
+     /tmp/ccXxwbb2.s:332    .text:00000078 rtl_get_slot
+                            *COM*:00000002 current_global_slot
+     /tmp/ccXxwbb2.s:355    .text:00000084 rtl_sync_status
+                            *COM*:00000001 _rtl_sync_ok
+     /tmp/ccXxwbb2.s:374    .text:0000008a rtl_check_abs_tx_status
+                            *COM*:00000001 rtl_abs_tx_ready
+     /tmp/ccXxwbb2.s:393    .text:00000090 rtl_rx_pkt_release
+     /tmp/ccXxwbb2.s:415    .text:00000096 rtl_tx_pkt_check
+                            *COM*:00000001 _rtl_contention_pending
+                            *COM*:00000004 rtl_tx_data_ready
+     /tmp/ccXxwbb2.s:454    .text:000000c4 rtl_rx_pkt_check
+     /tmp/ccXxwbb2.s:474    .text:000000ca rtl_set_cycle_callback
+                            *COM*:00000002 cycle_callback
+     /tmp/ccXxwbb2.s:497    .text:000000d4 rtl_set_slot_callback
+                            *COM*:00000002 slot_callback
+     /tmp/ccXxwbb2.s:520    .text:000000de rtl_set_rx_callback
+                            *COM*:00000002 rx_callback
+     /tmp/ccXxwbb2.s:543    .text:000000e8 rtl_set_tx_callback
+                            *COM*:00000002 tx_callback
+     /tmp/ccXxwbb2.s:566    .text:000000f2 rtl_set_abs_callback
+                            *COM*:00000002 abs_callback
+     /tmp/ccXxwbb2.s:590    .text:000000fc rtl_rx_pkt_set_buffer
+     /tmp/ccXxwbb2.s:626    .text:00000118 rtl_task_config
+     /tmp/ccXxwbb2.s:2021   .text:00000908 rtl_nw_task
+                            *COM*:00000023 rtl_task
+                            *COM*:00000080 rtl_task_stack
+     /tmp/ccXxwbb2.s:722    .text:0000018a rtl_start
+                            *COM*:00000001 rtl_node_mode
+                            *COM*:00000004 rtl_tdma_tx_mask
+                            *COM*:00000010 rtl_sched
+     /tmp/ccXxwbb2.s:783    .text:000001d8 rtl_set_contention
+                            *COM*:00000001 _rtl_contention_slots
+     /tmp/ccXxwbb2.s:852    .text:00000220 rtl_init
+     /tmp/ccXxwbb2.s:2884   .progmem.data:0000002b __c.2728
+     /tmp/ccXxwbb2.s:2880   .progmem.data:00000000 __c.2730
+                            *COM*:00000001 _rtl_time_token_status
+                            *COM*:00000001 _rtl_time_token
+                            *COM*:00000002 last_sync_slot
+                            *COM*:00000002 global_cycle
+                            *COM*:00000002 global_slot
+                            *COM*:00000009 rtl_param
+                            *COM*:00000004 rtl_tdma_rx_mask
+     /tmp/ccXxwbb2.s:1048   .text:0000035a rtl_set_tx_power
+     /tmp/ccXxwbb2.s:1070   .text:00000360 _rtl_tx
+                            *COM*:00000063 rtl_tx_info
+                            *COM*:00000007 rtl_rfTxInfo
+                            *COM*:00000002 slot_start_time
+     /tmp/ccXxwbb2.s:1234   .text:0000047e _rtl_rx
+     /tmp/ccXxwbb2.s:1430   .text:00000580 rtl_tx_abs_pkt
+                            *COM*:00000002 rtl_abs_tx_slot
+     /tmp/ccXxwbb2.s:1517   .text:00000606 _rtl_rx_sync
+     /tmp/ccXxwbb2.s:1907   .text:00000878 rtl_set_channel
+     /tmp/ccXxwbb2.s:1934   .text:00000882 rtl_tx_pkt
+                            *COM*:00000002 last_slot
+                            *COM*:00000008 last_slot_time
+                            *COM*:00000003 rtl_tsync_buf
+                            *COM*:00000007 rtl_tsync_tx
+     /tmp/ccXxwbb2.s:2549   .text:00000cac rtl_get_global_slot
+     /tmp/ccXxwbb2.s:2664   .text:00000d7a rtl_wait_until_rx_or_tx
+     /tmp/ccXxwbb2.s:2720   .text:00000dca rtl_wait_until_rx_pkt
+     /tmp/ccXxwbb2.s:2765   .text:00000dfc rtl_wait_until_tx_done
+                            *COM*:00000004 _nrk_signal_list
+                            *COM*:00000080 nrk_idle_task_stk
+                            *COM*:00000002 nrk_kernel_stk_ptr
+                            *COM*:00000074 rtl_rx_buf
+                            *COM*:00000020 rtl_sched_cache
+                            *COM*:00000008 rtl_abs_wakeup
+                            *COM*:00000002 prev_offset
+                            *COM*:00000002 rtl_drift_rate
+                            *COM*:00000001 _tsync_index
+                            *COM*:00000001 _dbg_index
+                            *COM*:00000008 pkt_log
+                            *COM*:00000008 tsync_log
+                            *COM*:00000008 tsync_delay
+                            *COM*:00000001 _nrk_prev_timer_val
+                            *COM*:00000001 _nrk_time_trigger
+                            *COM*:00000002 app_timer0_callback
+                            *COM*:00000001 app_timer0_prescale
+                            *COM*:00000001 error_task
+                            *COM*:00000001 error_num
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
+nrk_task_set_stk
+nrk_activate_task
+rtl_set_schedule
+_rtl_clear_sched_cache
+nrk_signal_create
+nrk_kprintf
+nrk_cur_task_TCB
+nrk_kernel_error_add
+_nrk_high_speed_timer_start
+_rtl_clr_abs_all_wakeup
+rf_init
+rf_tx_power
+rf_tx_tdma_packet
+nrk_event_signal
+rf_set_rx
+rf_polling_rx_on
+_nrk_os_timer_get
+rf_rx_off
+rf_rx_check_sfd
+rf_polling_rx_packet
+rtl_set_abs_wakeup
+_nrk_set_next_wakeup
+nrk_battery_save
+_nrk_high_speed_timer_reset
+_nrk_high_speed_timer_get
+_rtl_clr_abs_wakeup
+_nrk_os_timer_stop
+_nrk_os_timer_reset
+_nrk_os_timer_set
+nrk_high_speed_timer_wait
+_nrk_os_timer_start
+rf_set_channel
+rand
+__divmodhi4
+nrk_wait_until_next_period
+nrk_time_get
+_rtl_match_abs_wakeup
+rtl_get_slots_until_next_wakeup
+_rtl_get_next_abs_wakeup
+nrk_wait_until_ticks
+nrk_led_clr
+nrk_wait_until_next_n_periods
+nrk_led_set
+nrk_time_sub
+__mulsi3
+__udivmodsi4
+nrk_signal_register
+nrk_event_wait

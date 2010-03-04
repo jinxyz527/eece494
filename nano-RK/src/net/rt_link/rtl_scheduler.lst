@@ -1,0 +1,1175 @@
+   1               		.file	"rtl_scheduler.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.global __do_copy_data
+   8               		.global __do_clear_bss
+  11               		.text
+  12               	.Ltext0:
+ 136               	.global	rtl_set_schedule
+ 138               	rtl_set_schedule:
+ 139               		.stabd	46,0,0
+   1:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /******************************************************************************
+   2:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  Nano-RK, a real-time operating system for sensor networks.
+   3:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  Copyright (C) 2007, Real-Time and Multimedia Lab, Carnegie Mellon University
+   4:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  All rights reserved.
+   5:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *
+   6:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  This is the Open Source Version of Nano-RK included as part of a Dual
+   7:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  Licensing Model. If you are unsure which license to use please refer to:
+   8:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  http://www.nanork.org/nano-RK/wiki/Licensing
+   9:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *
+  10:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  This program is free software: you can redistribute it and/or modify
+  11:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  it under the terms of the GNU General Public License as published by
+  12:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  the Free Software Foundation, version 2.0 of the License.
+  13:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *
+  14:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  This program is distributed in the hope that it will be useful,
+  15:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  16:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  17:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  GNU General Public License for more details.
+  18:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *
+  19:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  You should have received a copy of the GNU General Public License
+  20:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  21:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *
+  22:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  Contributing Authors (specific to this file):
+  23:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *  Anthony Rowe
+  24:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** *******************************************************************************/
+  25:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+  26:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+  27:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** #include <rt_link.h>
+  28:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** #include <rtl_scheduler.h>
+  29:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** #include <include.h>
+  30:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** #include <nrk_error.h>
+  31:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+  32:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+  33:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+  34:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * rtl_set_schedule ( rx_tx, slot, sched )
+  35:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+  36:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Arguments: rtl_rx_tx_t rx_tx takes either RTL_RX or RTL_TX to set if you
+  37:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            are setting an RX or a TX schedule.
+  38:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            uint8_t slot sets which RX or TX slot you wish to schedule
+  39:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            uint8_t sched takes in the log based schedule you wish to set
+  40:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            		sched	counts
+  41:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            		0	reserved
+  42:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            		1	1
+  43:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            		2	2
+  44:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            		3	4
+  45:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            		4	8
+  46:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            		5	16
+  47:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            		6	32
+  48:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            		7	reserve
+  49:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            		8	reserve
+  50:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+  51:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * example: rtl_set_schedule( RTL_RX, 5, 3 );
+  52:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+  53:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Return: NRK_OK if good, NRK_ERROR if failed
+  54:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+  55:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** int8_t rtl_set_schedule (rtl_rx_tx_t rx_tx, uint8_t slot, uint8_t sched)
+  56:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 141               	.LM0:
+ 142               	.LFBB1:
+ 143 0000 EF92      		push r14
+ 144 0002 FF92      		push r15
+ 145 0004 0F93      		push r16
+ 146 0006 1F93      		push r17
+ 147               	/* prologue: function */
+ 148               	/* frame size = 0 */
+ 149 0008 942F      		mov r25,r20
+  57:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint32_t t_mask;
+  58:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t dslot;
+  59:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (sched > 15 || slot > 31)
+ 151               	.LM1:
+ 152 000a 4031      		cpi r20,lo8(16)
+ 153 000c 00F0      		brlo .+2
+ 154 000e 00C0      		rjmp .L2
+ 155 0010 6032      		cpi r22,lo8(32)
+ 156 0012 00F0      		brlo .+2
+ 157 0014 00C0      		rjmp .L2
+  60:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         return NRK_ERROR;
+  61:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     t_mask = 0;
+  62:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     t_mask = ((uint32_t) 1) << slot;
+ 159               	.LM2:
+ 160 0016 762F      		mov r23,r22
+ 161 0018 21E0      		ldi r18,lo8(1)
+ 162 001a 30E0      		ldi r19,hi8(1)
+ 163 001c 40E0      		ldi r20,hlo8(1)
+ 164 001e 50E0      		ldi r21,hhi8(1)
+ 165 0020 062E      		mov r0,r22
+ 166 0022 00C0      		rjmp 2f
+ 167 0024 220F      	1:	lsl r18
+ 168 0026 331F      		rol r19
+ 169 0028 441F      		rol r20
+ 170 002a 551F      		rol r21
+ 171 002c 0A94      	2:	dec r0
+ 172 002e 02F4      		brpl 1b
+  63:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (rx_tx == RTL_RX)
+ 174               	.LM3:
+ 175 0030 8823      		tst r24
+ 176 0032 01F4      		brne .L3
+  64:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_tdma_rx_mask |= t_mask;
+ 178               	.LM4:
+ 179 0034 E090 0000 		lds r14,rtl_tdma_rx_mask
+ 180 0038 F090 0000 		lds r15,(rtl_tdma_rx_mask)+1
+ 181 003c 0091 0000 		lds r16,(rtl_tdma_rx_mask)+2
+ 182 0040 1091 0000 		lds r17,(rtl_tdma_rx_mask)+3
+ 183 0044 E22A      		or r14,r18
+ 184 0046 F32A      		or r15,r19
+ 185 0048 042B      		or r16,r20
+ 186 004a 152B      		or r17,r21
+ 187 004c E092 0000 		sts rtl_tdma_rx_mask,r14
+ 188 0050 F092 0000 		sts (rtl_tdma_rx_mask)+1,r15
+ 189 0054 0093 0000 		sts (rtl_tdma_rx_mask)+2,r16
+ 190 0058 1093 0000 		sts (rtl_tdma_rx_mask)+3,r17
+ 191 005c 00C0      		rjmp .L4
+ 192               	.L3:
+  65:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     else
+  66:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_tdma_tx_mask |= t_mask;
+ 194               	.LM5:
+ 195 005e E090 0000 		lds r14,rtl_tdma_tx_mask
+ 196 0062 F090 0000 		lds r15,(rtl_tdma_tx_mask)+1
+ 197 0066 0091 0000 		lds r16,(rtl_tdma_tx_mask)+2
+ 198 006a 1091 0000 		lds r17,(rtl_tdma_tx_mask)+3
+ 199 006e E22A      		or r14,r18
+ 200 0070 F32A      		or r15,r19
+ 201 0072 042B      		or r16,r20
+ 202 0074 152B      		or r17,r21
+ 203 0076 E092 0000 		sts rtl_tdma_tx_mask,r14
+ 204 007a F092 0000 		sts (rtl_tdma_tx_mask)+1,r15
+ 205 007e 0093 0000 		sts (rtl_tdma_tx_mask)+2,r16
+ 206 0082 1093 0000 		sts (rtl_tdma_tx_mask)+3,r17
+ 207               	.L4:
+  67:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     dslot = slot >> 1;
+ 209               	.LM6:
+ 210 0086 6695      		lsr r22
+ 211 0088 E62F      		mov r30,r22
+ 212 008a F0E0      		ldi r31,lo8(0)
+  68:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (slot % 2 == 0) {
+ 214               	.LM7:
+ 215 008c 70FD      		sbrc r23,0
+ 216 008e 00C0      		rjmp .L5
+  69:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_sched[dslot] = rtl_sched[dslot] & 0xF0;
+  70:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_sched[dslot] = rtl_sched[dslot] | sched;
+ 218               	.LM8:
+ 219 0090 E050      		subi r30,lo8(-(rtl_sched))
+ 220 0092 F040      		sbci r31,hi8(-(rtl_sched))
+ 221 0094 8081      		ld r24,Z
+ 222 0096 807F      		andi r24,lo8(-16)
+ 223 0098 892B      		or r24,r25
+ 224 009a 8083      		st Z,r24
+ 225 009c 00C0      		rjmp .L8
+ 226               	.L5:
+  71:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     }
+  72:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     else {
+  73:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_sched[dslot] = rtl_sched[dslot] & 0x0F;
+  74:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_sched[dslot] = rtl_sched[dslot] | ((sched << 4) & 0xF0);
+ 228               	.LM9:
+ 229 009e E050      		subi r30,lo8(-(rtl_sched))
+ 230 00a0 F040      		sbci r31,hi8(-(rtl_sched))
+ 231 00a2 8081      		ld r24,Z
+ 232 00a4 8F70      		andi r24,lo8(15)
+ 233 00a6 492F      		mov r20,r25
+ 234 00a8 4295      		swap r20
+ 235 00aa 407F      		andi r20,lo8(-16)
+ 236 00ac 482B      		or r20,r24
+ 237 00ae 4083      		st Z,r20
+ 238               	.L8:
+ 239 00b0 81E0      		ldi r24,lo8(1)
+ 240 00b2 00C0      		rjmp .L6
+ 241               	.L2:
+ 242 00b4 8FEF      		ldi r24,lo8(-1)
+ 243               	.L6:
+ 244               	/* epilogue start */
+  75:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     }
+  76:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** return NRK_OK;
+  77:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /*
+  78:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****    printf( "slot = %d sched = %d\n", slot,sched );
+  79:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****    printf( "index = %d\n", dslot);
+  80:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****    printf( "value = %d\n", rtl_rx_sched[dslot]);
+  81:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****    printf( "mask = %x\n", rtl_tdma_rx_mask );
+  82:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****    printf( "--------------------------\n");
+  83:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** */
+  84:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 246               	.LM10:
+ 247 00b6 1F91      		pop r17
+ 248 00b8 0F91      		pop r16
+ 249 00ba FF90      		pop r15
+ 250 00bc EF90      		pop r14
+ 251 00be 0895      		ret
+ 257               	.Lscope1:
+ 259               		.stabd	78,0,0
+ 262               	.global	rtl_get_schedule
+ 264               	rtl_get_schedule:
+ 265               		.stabd	46,0,0
+  85:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+  86:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+  87:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+  88:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+  89:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+  90:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+  91:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * rtl_get_schedule()
+  92:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+  93:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This function returns the stored schedule for a particular slot.
+  94:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Since you can't have RX and TX on the same slot, it assumes you know
+  95:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * if it is an RX or TX slot.
+  96:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+  97:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Return: schedule value in its original form 1-6
+  98:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+  99:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** int8_t rtl_get_schedule (uint8_t slot)
+ 100:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 267               	.LM11:
+ 268               	.LFBB2:
+ 269               	/* prologue: function */
+ 270               	/* frame size = 0 */
+ 101:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t dslot;
+ 102:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 103:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (slot > 31)
+ 272               	.LM12:
+ 273 00c0 8032      		cpi r24,lo8(32)
+ 274 00c2 00F0      		brlo .L11
+ 275 00c4 8FEF      		ldi r24,lo8(-1)
+ 276 00c6 0895      		ret
+ 277               	.L11:
+ 104:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         return NRK_ERROR;
+ 105:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 106:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     dslot = slot >> 1;
+ 279               	.LM13:
+ 280 00c8 282F      		mov r18,r24
+ 281 00ca 2695      		lsr r18
+ 282 00cc 30E0      		ldi r19,lo8(0)
+ 107:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (slot % 2 == 0)
+ 284               	.LM14:
+ 285 00ce 80FD      		sbrc r24,0
+ 286 00d0 00C0      		rjmp .L13
+ 108:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         return (rtl_sched[dslot] & 0x0F);
+ 288               	.LM15:
+ 289 00d2 2050      		subi r18,lo8(-(rtl_sched))
+ 290 00d4 3040      		sbci r19,hi8(-(rtl_sched))
+ 291 00d6 F901      		movw r30,r18
+ 292 00d8 8081      		ld r24,Z
+ 293 00da 8F70      		andi r24,lo8(15)
+ 294 00dc 0895      		ret
+ 295               	.L13:
+ 109:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     else
+ 110:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         return (rtl_sched[dslot] >> 4);
+ 297               	.LM16:
+ 298 00de 2050      		subi r18,lo8(-(rtl_sched))
+ 299 00e0 3040      		sbci r19,hi8(-(rtl_sched))
+ 300 00e2 F901      		movw r30,r18
+ 301 00e4 8081      		ld r24,Z
+ 302 00e6 8295      		swap r24
+ 303 00e8 8F70      		andi r24,lo8(15)
+ 111:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 305               	.LM17:
+ 306 00ea 0895      		ret
+ 311               	.Lscope2:
+ 313               		.stabd	78,0,0
+ 317               	.global	rtl_clr_schedule
+ 319               	rtl_clr_schedule:
+ 320               		.stabd	46,0,0
+ 112:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 113:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+ 114:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * rtl_clr_schedule()
+ 115:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 116:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This function clears an already scheduled slot so that it
+ 117:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * is not called by the scheduler anymore.  Use this to delete
+ 118:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * slots when they are not wanted anymore.
+ 119:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 120:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Arguments: rtl_rx_tx_t rx_tx is either RTL_RX or RTL_TX depending on if it
+ 121:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            is a TX or RX slot
+ 122:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *            uint8_t slot is the slot number starting from 0
+ 123:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 124:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Return: NRK_OK upon success, NRK_ERROR on failure
+ 125:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+ 126:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** int8_t rtl_clr_schedule (rtl_rx_tx_t rx_tx, uint8_t slot)
+ 127:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 322               	.LM18:
+ 323               	.LFBB3:
+ 324               	/* prologue: function */
+ 325               	/* frame size = 0 */
+ 128:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint32_t t_mask;
+ 129:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t dslot;
+ 130:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (slot > 31)
+ 327               	.LM19:
+ 328 00ec 6032      		cpi r22,lo8(32)
+ 329 00ee 00F0      		brlo .L16
+ 131:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         return NRK_ERROR;
+ 132:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     t_mask = 0;
+ 133:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     t_mask = 1 << slot;
+ 134:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (rx_tx == RTL_RX)
+ 135:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_tdma_rx_mask &= ~t_mask;
+ 136:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     else
+ 137:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_tdma_tx_mask &= ~t_mask;
+ 138:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     dslot = slot >> 1;
+ 139:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (slot % 2 == 0)
+ 140:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_sched[dslot] = rtl_sched[dslot] & 0xF0;
+ 141:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     else
+ 142:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_sched[dslot] = rtl_sched[dslot] & 0x0F;
+ 143:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 331               	.LM20:
+ 332 00f0 8FEF      		ldi r24,lo8(-1)
+ 333 00f2 0895      		ret
+ 334               	.L16:
+ 336               	.LM21:
+ 337 00f4 762F      		mov r23,r22
+ 338 00f6 21E0      		ldi r18,lo8(1)
+ 339 00f8 30E0      		ldi r19,hi8(1)
+ 340 00fa 062E      		mov r0,r22
+ 341 00fc 00C0      		rjmp 2f
+ 342 00fe 220F      	1:	lsl r18
+ 343 0100 331F      		rol r19
+ 344 0102 0A94      	2:	dec r0
+ 345 0104 02F4      		brpl 1b
+ 346 0106 4427      		clr r20
+ 347 0108 37FD      		sbrc r19,7
+ 348 010a 4095      		com r20
+ 349 010c 542F      		mov r21,r20
+ 350 010e 2095      		com r18
+ 351 0110 3095      		com r19
+ 352 0112 4095      		com r20
+ 353 0114 5095      		com r21
+ 355               	.LM22:
+ 356 0116 8823      		tst r24
+ 357 0118 01F4      		brne .L17
+ 359               	.LM23:
+ 360 011a 8091 0000 		lds r24,rtl_tdma_rx_mask
+ 361 011e 9091 0000 		lds r25,(rtl_tdma_rx_mask)+1
+ 362 0122 A091 0000 		lds r26,(rtl_tdma_rx_mask)+2
+ 363 0126 B091 0000 		lds r27,(rtl_tdma_rx_mask)+3
+ 364 012a 8223      		and r24,r18
+ 365 012c 9323      		and r25,r19
+ 366 012e A423      		and r26,r20
+ 367 0130 B523      		and r27,r21
+ 368 0132 8093 0000 		sts rtl_tdma_rx_mask,r24
+ 369 0136 9093 0000 		sts (rtl_tdma_rx_mask)+1,r25
+ 370 013a A093 0000 		sts (rtl_tdma_rx_mask)+2,r26
+ 371 013e B093 0000 		sts (rtl_tdma_rx_mask)+3,r27
+ 372 0142 00C0      		rjmp .L18
+ 373               	.L17:
+ 375               	.LM24:
+ 376 0144 8091 0000 		lds r24,rtl_tdma_tx_mask
+ 377 0148 9091 0000 		lds r25,(rtl_tdma_tx_mask)+1
+ 378 014c A091 0000 		lds r26,(rtl_tdma_tx_mask)+2
+ 379 0150 B091 0000 		lds r27,(rtl_tdma_tx_mask)+3
+ 380 0154 8223      		and r24,r18
+ 381 0156 9323      		and r25,r19
+ 382 0158 A423      		and r26,r20
+ 383 015a B523      		and r27,r21
+ 384 015c 8093 0000 		sts rtl_tdma_tx_mask,r24
+ 385 0160 9093 0000 		sts (rtl_tdma_tx_mask)+1,r25
+ 386 0164 A093 0000 		sts (rtl_tdma_tx_mask)+2,r26
+ 387 0168 B093 0000 		sts (rtl_tdma_tx_mask)+3,r27
+ 388               	.L18:
+ 390               	.LM25:
+ 391 016c 6695      		lsr r22
+ 392 016e E62F      		mov r30,r22
+ 393 0170 F0E0      		ldi r31,lo8(0)
+ 395               	.LM26:
+ 396 0172 70FD      		sbrc r23,0
+ 397 0174 00C0      		rjmp .L19
+ 399               	.LM27:
+ 400 0176 E050      		subi r30,lo8(-(rtl_sched))
+ 401 0178 F040      		sbci r31,hi8(-(rtl_sched))
+ 402 017a 8081      		ld r24,Z
+ 403 017c 807F      		andi r24,lo8(-16)
+ 404 017e 00C0      		rjmp .L23
+ 405               	.L19:
+ 407               	.LM28:
+ 408 0180 E050      		subi r30,lo8(-(rtl_sched))
+ 409 0182 F040      		sbci r31,hi8(-(rtl_sched))
+ 410 0184 8081      		ld r24,Z
+ 411 0186 8F70      		andi r24,lo8(15)
+ 412               	.L23:
+ 413 0188 8083      		st Z,r24
+ 415               	.LM29:
+ 416 018a 0895      		ret
+ 421               	.Lscope3:
+ 423               		.stabd	78,0,0
+ 425               	.global	_rtl_clr_abs_all_wakeup
+ 427               	_rtl_clr_abs_all_wakeup:
+ 428               		.stabd	46,0,0
+ 144:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 145:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+ 146:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * _rtl_clr_abs_all_wakeup()
+ 147:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 148:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This function clears all absolute wakeups. 
+ 149:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+ 150:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** void _rtl_clr_abs_all_wakeup ()
+ 151:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 430               	.LM30:
+ 431               	.LFBB4:
+ 432               	/* prologue: function */
+ 433               	/* frame size = 0 */
+ 152:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t i;
+ 153:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     for (i = 0; i < MAX_ABS_WAKEUP; i++)
+ 154:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_abs_wakeup[i] = MAX_SLOTS + 1;
+ 435               	.LM31:
+ 436 018c 81E0      		ldi r24,lo8(1025)
+ 437 018e 94E0      		ldi r25,hi8(1025)
+ 438 0190 9093 0000 		sts (rtl_abs_wakeup)+1,r25
+ 439 0194 8093 0000 		sts rtl_abs_wakeup,r24
+ 440 0198 9093 0000 		sts (rtl_abs_wakeup+2)+1,r25
+ 441 019c 8093 0000 		sts rtl_abs_wakeup+2,r24
+ 442 01a0 9093 0000 		sts (rtl_abs_wakeup+4)+1,r25
+ 443 01a4 8093 0000 		sts rtl_abs_wakeup+4,r24
+ 444 01a8 9093 0000 		sts (rtl_abs_wakeup+6)+1,r25
+ 445 01ac 8093 0000 		sts rtl_abs_wakeup+6,r24
+ 446               	/* epilogue start */
+ 155:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 448               	.LM32:
+ 449 01b0 0895      		ret
+ 451               	.Lscope4:
+ 453               		.stabd	78,0,0
+ 457               	.global	rtl_set_abs_wakeup
+ 459               	rtl_set_abs_wakeup:
+ 460               		.stabd	46,0,0
+ 156:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 157:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+ 158:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * rtl_set_abs_wakeup()
+ 159:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 160:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This function sets an absolute wakeup.  An absolute wakeup
+ 161:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * is a 16 bit slot value 0-1024 that signifies that the interrupt
+ 162:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * will be called at this point of each cycle.  This function does
+ 163:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * not check if a duplicate wakeup exists, so try to avoid them.  
+ 164:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * There is only room for MAX_ABS_WAKEUP number of scheduled events.
+ 165:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 166:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Argument: uint16_t slot is the value of a slot between 0 and 1024
+ 167:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * 	     uint8_t repeat is 1 if this should always trigger each cycle
+ 168:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * 	           if repeat is 0, it is cleared after it triggers once.
+ 169:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 170:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Return: 1 on success, 0 if no slots are available
+ 171:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 172:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+ 173:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** int8_t rtl_set_abs_wakeup (uint16_t slot, uint8_t repeat)
+ 174:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 462               	.LM33:
+ 463               	.LFBB5:
+ 464               	/* prologue: function */
+ 465               	/* frame size = 0 */
+ 175:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t i;
+ 176:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint16_t tmp;
+ 177:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     for (i = 0; i < MAX_ABS_WAKEUP; i++) {
+ 178:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	tmp=rtl_abs_wakeup[i]&0x7FFF;
+ 467               	.LM34:
+ 468 01b2 2091 0000 		lds r18,rtl_abs_wakeup
+ 469 01b6 3091 0000 		lds r19,(rtl_abs_wakeup)+1
+ 470 01ba 3F77      		andi r19,hi8(32767)
+ 471 01bc 44E0      		ldi r20,hi8(1025)
+ 472 01be 2130      		cpi r18,lo8(1025)
+ 473 01c0 3407      		cpc r19,r20
+ 474 01c2 00F0      		brlo .L27
+ 475 01c4 E0E0      		ldi r30,lo8(0)
+ 476 01c6 F0E0      		ldi r31,hi8(0)
+ 477 01c8 00C0      		rjmp .L28
+ 478               	.L27:
+ 179:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         if (tmp > MAX_SLOTS) {
+ 480               	.LM35:
+ 481 01ca 2091 0000 		lds r18,rtl_abs_wakeup+2
+ 482 01ce 3091 0000 		lds r19,(rtl_abs_wakeup+2)+1
+ 483 01d2 3F77      		andi r19,hi8(32767)
+ 484 01d4 44E0      		ldi r20,hi8(1025)
+ 485 01d6 2130      		cpi r18,lo8(1025)
+ 486 01d8 3407      		cpc r19,r20
+ 487 01da 00F0      		brlo .L29
+ 488 01dc E1E0      		ldi r30,lo8(1)
+ 489 01de F0E0      		ldi r31,hi8(1)
+ 490 01e0 00C0      		rjmp .L28
+ 491               	.L29:
+ 493               	.LM36:
+ 494 01e2 2091 0000 		lds r18,rtl_abs_wakeup+4
+ 495 01e6 3091 0000 		lds r19,(rtl_abs_wakeup+4)+1
+ 496 01ea 3F77      		andi r19,hi8(32767)
+ 497 01ec 44E0      		ldi r20,hi8(1025)
+ 498 01ee 2130      		cpi r18,lo8(1025)
+ 499 01f0 3407      		cpc r19,r20
+ 500 01f2 00F0      		brlo .L30
+ 501 01f4 E2E0      		ldi r30,lo8(2)
+ 502 01f6 F0E0      		ldi r31,hi8(2)
+ 503 01f8 00C0      		rjmp .L28
+ 504               	.L30:
+ 506               	.LM37:
+ 507 01fa 2091 0000 		lds r18,rtl_abs_wakeup+6
+ 508 01fe 3091 0000 		lds r19,(rtl_abs_wakeup+6)+1
+ 509 0202 3F77      		andi r19,hi8(32767)
+ 510 0204 44E0      		ldi r20,hi8(1025)
+ 511 0206 2130      		cpi r18,lo8(1025)
+ 512 0208 3407      		cpc r19,r20
+ 513 020a 00F4      		brsh .L31
+ 514 020c 8FEF      		ldi r24,lo8(-1)
+ 515 020e 0895      		ret
+ 516               	.L31:
+ 517 0210 E3E0      		ldi r30,lo8(3)
+ 518 0212 F0E0      		ldi r31,hi8(3)
+ 519               	.L28:
+ 180:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	    rtl_abs_wakeup[i] = slot;
+ 521               	.LM38:
+ 522 0214 EE0F      		lsl r30
+ 523 0216 FF1F      		rol r31
+ 524 0218 E050      		subi r30,lo8(-(rtl_abs_wakeup))
+ 525 021a F040      		sbci r31,hi8(-(rtl_abs_wakeup))
+ 526 021c 9183      		std Z+1,r25
+ 527 021e 8083      		st Z,r24
+ 181:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	    if(repeat) rtl_abs_wakeup[i]|=0x8000;
+ 529               	.LM39:
+ 530 0220 6623      		tst r22
+ 531 0222 01F4      		brne .L33
+ 532 0224 81E0      		ldi r24,lo8(1)
+ 533 0226 0895      		ret
+ 534               	.L33:
+ 535 0228 9068      		ori r25,hi8(-32768)
+ 536 022a 9183      		std Z+1,r25
+ 537 022c 8083      		st Z,r24
+ 538 022e 81E0      		ldi r24,lo8(1)
+ 182:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****             return NRK_OK;
+ 183:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         }
+ 184:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     }
+ 185:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** return NRK_ERROR;
+ 186:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 540               	.LM40:
+ 541 0230 0895      		ret
+ 543               	.Lscope5:
+ 545               		.stabd	78,0,0
+ 548               	.global	_rtl_clr_abs_wakeup
+ 550               	_rtl_clr_abs_wakeup:
+ 551               		.stabd	46,0,0
+ 187:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 188:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+ 189:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * _rtl_clr_abs_wakeup()
+ 190:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 191:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This function clears an already set absolute wakeup.
+ 192:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+ 193:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** void _rtl_clr_abs_wakeup (uint16_t slot)
+ 194:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 553               	.LM41:
+ 554               	.LFBB6:
+ 555               	/* prologue: function */
+ 556               	/* frame size = 0 */
+ 557               	.LBB5:
+ 195:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t i;
+ 196:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     
+ 197:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     for (i = 0; i < MAX_ABS_WAKEUP; i++) {
+ 198:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     	uint16_t tmp;
+ 199:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	tmp=rtl_abs_wakeup[i]&0x7FFF;
+ 559               	.LM42:
+ 560 0232 2091 0000 		lds r18,rtl_abs_wakeup
+ 561 0236 3091 0000 		lds r19,(rtl_abs_wakeup)+1
+ 562 023a 3F77      		andi r19,hi8(32767)
+ 563 023c 2817      		cp r18,r24
+ 564 023e 3907      		cpc r19,r25
+ 565 0240 01F4      		brne .L36
+ 566 0242 80E0      		ldi r24,lo8(0)
+ 567 0244 90E0      		ldi r25,hi8(0)
+ 568 0246 00C0      		rjmp .L37
+ 569               	.L36:
+ 200:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         if (tmp == slot) {
+ 571               	.LM43:
+ 572 0248 2091 0000 		lds r18,rtl_abs_wakeup+2
+ 573 024c 3091 0000 		lds r19,(rtl_abs_wakeup+2)+1
+ 574 0250 3F77      		andi r19,hi8(32767)
+ 575 0252 2817      		cp r18,r24
+ 576 0254 3907      		cpc r19,r25
+ 577 0256 01F4      		brne .L38
+ 578 0258 81E0      		ldi r24,lo8(1)
+ 579 025a 90E0      		ldi r25,hi8(1)
+ 580 025c 00C0      		rjmp .L37
+ 581               	.L38:
+ 583               	.LM44:
+ 584 025e 2091 0000 		lds r18,rtl_abs_wakeup+4
+ 585 0262 3091 0000 		lds r19,(rtl_abs_wakeup+4)+1
+ 586 0266 3F77      		andi r19,hi8(32767)
+ 587 0268 2817      		cp r18,r24
+ 588 026a 3907      		cpc r19,r25
+ 589 026c 01F4      		brne .L39
+ 590 026e 82E0      		ldi r24,lo8(2)
+ 591 0270 90E0      		ldi r25,hi8(2)
+ 592 0272 00C0      		rjmp .L37
+ 593               	.L39:
+ 595               	.LM45:
+ 596 0274 2091 0000 		lds r18,rtl_abs_wakeup+6
+ 597 0278 3091 0000 		lds r19,(rtl_abs_wakeup+6)+1
+ 598 027c 3F77      		andi r19,hi8(32767)
+ 599 027e 2817      		cp r18,r24
+ 600 0280 3907      		cpc r19,r25
+ 601 0282 01F4      		brne .L41
+ 602 0284 83E0      		ldi r24,lo8(3)
+ 603 0286 90E0      		ldi r25,hi8(3)
+ 604               	.L37:
+ 201:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****             rtl_abs_wakeup[i] = MAX_SLOTS + 1;
+ 606               	.LM46:
+ 607 0288 FC01      		movw r30,r24
+ 608 028a EE0F      		lsl r30
+ 609 028c FF1F      		rol r31
+ 610 028e E050      		subi r30,lo8(-(rtl_abs_wakeup))
+ 611 0290 F040      		sbci r31,hi8(-(rtl_abs_wakeup))
+ 612 0292 81E0      		ldi r24,lo8(1025)
+ 613 0294 94E0      		ldi r25,hi8(1025)
+ 614 0296 9183      		std Z+1,r25
+ 615 0298 8083      		st Z,r24
+ 616               	.L41:
+ 617 029a 0895      		ret
+ 618               	.LBE5:
+ 620               	.Lscope6:
+ 622               		.stabd	78,0,0
+ 625               	.global	_rtl_match_abs_wakeup
+ 627               	_rtl_match_abs_wakeup:
+ 628               		.stabd	46,0,0
+ 202:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****             return;
+ 203:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         }
+ 204:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     }
+ 205:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 206:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 207:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 208:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+ 209:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * _rtl_match_abs_wakeup()
+ 210:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 211:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This function is called by the interrupt timer to check to
+ 212:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * see if there is a scheduled slot at the current time.
+ 213:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 214:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Return: 1 if this is a scheduled slot, 0 otherwise
+ 215:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+ 216:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** uint8_t _rtl_match_abs_wakeup (uint16_t global_slot)
+ 217:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 630               	.LM47:
+ 631               	.LFBB7:
+ 632               	/* prologue: function */
+ 633               	/* frame size = 0 */
+ 634               	.LBB6:
+ 218:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t i;
+ 219:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     for (i = 0; i < MAX_ABS_WAKEUP; i++) {
+ 220:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     	uint16_t tmp;
+ 221:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	tmp=rtl_abs_wakeup[i]&0x7FFF;
+ 636               	.LM48:
+ 637 029c 2091 0000 		lds r18,rtl_abs_wakeup
+ 638 02a0 3091 0000 		lds r19,(rtl_abs_wakeup)+1
+ 222:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         if (tmp == global_slot)
+ 640               	.LM49:
+ 641 02a4 A901      		movw r20,r18
+ 642 02a6 5F77      		andi r21,hi8(32767)
+ 643 02a8 4817      		cp r20,r24
+ 644 02aa 5907      		cpc r21,r25
+ 645 02ac 01F0      		breq .L43
+ 647               	.LM50:
+ 648 02ae 2091 0000 		lds r18,rtl_abs_wakeup+2
+ 649 02b2 3091 0000 		lds r19,(rtl_abs_wakeup+2)+1
+ 651               	.LM51:
+ 652 02b6 A901      		movw r20,r18
+ 653 02b8 5F77      		andi r21,hi8(32767)
+ 654 02ba 4817      		cp r20,r24
+ 655 02bc 5907      		cpc r21,r25
+ 656 02be 01F0      		breq .L43
+ 658               	.LM52:
+ 659 02c0 2091 0000 		lds r18,rtl_abs_wakeup+4
+ 660 02c4 3091 0000 		lds r19,(rtl_abs_wakeup+4)+1
+ 662               	.LM53:
+ 663 02c8 A901      		movw r20,r18
+ 664 02ca 5F77      		andi r21,hi8(32767)
+ 665 02cc 4817      		cp r20,r24
+ 666 02ce 5907      		cpc r21,r25
+ 667 02d0 01F0      		breq .L43
+ 669               	.LM54:
+ 670 02d2 2091 0000 		lds r18,rtl_abs_wakeup+6
+ 671 02d6 3091 0000 		lds r19,(rtl_abs_wakeup+6)+1
+ 673               	.LM55:
+ 674 02da A901      		movw r20,r18
+ 675 02dc 5F77      		andi r21,hi8(32767)
+ 676 02de 4817      		cp r20,r24
+ 677 02e0 5907      		cpc r21,r25
+ 678 02e2 01F0      		breq .L43
+ 679 02e4 80E0      		ldi r24,lo8(0)
+ 680 02e6 0895      		ret
+ 681               	.L43:
+ 223:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	{
+ 224:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	    //if( (rtl_abs_wakeup[i]&0x8000)==0 )
+ 225:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	    if( rtl_abs_wakeup[i]<=0x8000 )
+ 683               	.LM56:
+ 684 02e8 40E8      		ldi r20,hi8(-32767)
+ 685 02ea 2130      		cpi r18,lo8(-32767)
+ 686 02ec 3407      		cpc r19,r20
+ 687 02ee 00F0      		brlo .L45
+ 688 02f0 81E0      		ldi r24,lo8(1)
+ 689 02f2 0895      		ret
+ 690               	.L45:
+ 226:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	    	{
+ 227:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 		// If it is not a repeat slot, clear it
+ 228:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 		_rtl_clr_abs_wakeup(global_slot);
+ 692               	.LM57:
+ 693 02f4 0E94 0000 		call _rtl_clr_abs_wakeup
+ 694 02f8 81E0      		ldi r24,lo8(1)
+ 695               	.LBE6:
+ 229:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 		}
+ 230:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****             return 1;
+ 231:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	}
+ 232:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     }
+ 233:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     return 0;
+ 234:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 697               	.LM58:
+ 698 02fa 0895      		ret
+ 700               	.Lscope7:
+ 702               		.stabd	78,0,0
+ 705               	.global	_rtl_get_next_abs_wakeup
+ 707               	_rtl_get_next_abs_wakeup:
+ 708               		.stabd	46,0,0
+ 235:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 236:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+ 237:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * _rtl_get_next_abs_wakeup()
+ 238:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 239:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This function returns the number of slots between the given
+ 240:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * global_slot and the next already scheduled absolute wakeup.
+ 241:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This is used by the timer interrupt to help schedule when it needs 
+ 242:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * to wakeup again.
+ 243:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * 
+ 244:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Arguments: global_slot is the current slot
+ 245:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 246:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Return: uint16_t with the offset until the next absolute wakeup.  If the
+ 247:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * 	   next wakeup is greater than 1024, then 0 is returned.
+ 248:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+ 249:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** uint16_t _rtl_get_next_abs_wakeup (uint16_t global_slot)
+ 250:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 710               	.LM59:
+ 711               	.LFBB8:
+ 712               	/* prologue: function */
+ 713               	/* frame size = 0 */
+ 715               	.LM60:
+ 716 02fc E0E0      		ldi r30,lo8(rtl_abs_wakeup)
+ 717 02fe F0E0      		ldi r31,hi8(rtl_abs_wakeup)
+ 719               	.LM61:
+ 720 0300 21E0      		ldi r18,lo8(1025)
+ 721 0302 34E0      		ldi r19,hi8(1025)
+ 722               	.L50:
+ 251:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t i;
+ 252:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     int16_t min;
+ 253:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     int16_t tmp;
+ 254:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     min = MAX_SLOTS +1;
+ 255:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 256:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     for (i = 0; i < MAX_ABS_WAKEUP; i++) {
+ 257:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	if((rtl_abs_wakeup[i]&0x7FFF)<MAX_SLOTS)
+ 724               	.LM62:
+ 725 0304 4081      		ld r20,Z
+ 726 0306 5181      		ldd r21,Z+1
+ 727 0308 5F77      		andi r21,hi8(32767)
+ 728 030a 64E0      		ldi r22,hi8(1024)
+ 729 030c 4030      		cpi r20,lo8(1024)
+ 730 030e 5607      		cpc r21,r22
+ 731 0310 00F4      		brsh .L48
+ 258:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	{
+ 259:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         tmp = (rtl_abs_wakeup[i]&0x7FFF) - global_slot;
+ 733               	.LM63:
+ 734 0312 481B      		sub r20,r24
+ 735 0314 590B      		sbc r21,r25
+ 260:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         if (tmp > 0 && tmp < min)
+ 737               	.LM64:
+ 738 0316 1416      		cp __zero_reg__,r20
+ 739 0318 1506      		cpc __zero_reg__,r21
+ 740 031a 04F4      		brge .L48
+ 741 031c 4217      		cp r20,r18
+ 742 031e 5307      		cpc r21,r19
+ 743 0320 04F4      		brge .L48
+ 744 0322 9A01      		movw r18,r20
+ 745               	.L48:
+ 746 0324 3296      		adiw r30,2
+ 748               	.LM65:
+ 749 0326 40E0      		ldi r20,hi8(rtl_abs_wakeup+8)
+ 750 0328 E030      		cpi r30,lo8(rtl_abs_wakeup+8)
+ 751 032a F407      		cpc r31,r20
+ 752 032c 01F4      		brne .L50
+ 261:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****             min = tmp;
+ 262:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 	}
+ 263:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     }
+ 264:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (min == MAX_SLOTS +1)
+ 754               	.LM66:
+ 755 032e 64E0      		ldi r22,hi8(1025)
+ 756 0330 2130      		cpi r18,lo8(1025)
+ 757 0332 3607      		cpc r19,r22
+ 758 0334 01F4      		brne .L51
+ 759 0336 20E0      		ldi r18,lo8(0)
+ 760 0338 30E0      		ldi r19,hi8(0)
+ 761               	.L51:
+ 265:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         min = 0;
+ 266:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     return min;
+ 267:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 763               	.LM67:
+ 764 033a C901      		movw r24,r18
+ 765               	/* epilogue start */
+ 766 033c 0895      		ret
+ 772               	.Lscope8:
+ 774               		.stabd	78,0,0
+ 776               	.global	_rtl_clear_sched_cache
+ 778               	_rtl_clear_sched_cache:
+ 779               		.stabd	46,0,0
+ 268:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 269:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+ 270:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * _rtl_clear_sched_cache()
+ 271:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 272:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This function is called by the timer interrupt at the
+ 273:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * start of each TDMA cycle to remove any cached scheduling
+ 274:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * values.  Only call this if you are reseting the TDMA frames.
+ 275:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+ 276:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** void _rtl_clear_sched_cache ()
+ 277:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 781               	.LM68:
+ 782               	.LFBB9:
+ 783               	/* prologue: function */
+ 784               	/* frame size = 0 */
+ 786               	.LM69:
+ 787 033e E0E0      		ldi r30,lo8(rtl_sched_cache)
+ 788 0340 F0E0      		ldi r31,hi8(rtl_sched_cache)
+ 789               	.L55:
+ 278:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t i;
+ 279:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** // FIXME compress this shit later...
+ 280:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     for (i = 0; i < 32; i++) {
+ 281:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_sched_cache[i] = 0;
+ 791               	.LM70:
+ 792 0342 1192      		st Z+,__zero_reg__
+ 794               	.LM71:
+ 795 0344 80E0      		ldi r24,hi8(rtl_sched_cache+32)
+ 796 0346 E030      		cpi r30,lo8(rtl_sched_cache+32)
+ 797 0348 F807      		cpc r31,r24
+ 798 034a 01F4      		brne .L55
+ 799               	/* epilogue start */
+ 282:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     }
+ 283:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 801               	.LM72:
+ 802 034c 0895      		ret
+ 804               	.Lscope9:
+ 806               		.stabd	78,0,0
+ 809               	.global	rtl_get_slots_until_next_wakeup
+ 811               	rtl_get_slots_until_next_wakeup:
+ 812               		.stabd	46,0,0
+ 284:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 285:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 286:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+ 287:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * rtl_get_slots_until_next_wakeup()
+ 288:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 289:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This function returns the absolute number of slots between the current_slot
+ 290:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * and the next RX/TX related wakeup.  It uses an internal cache to allow for
+ 291:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * faster computation.
+ 292:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 293:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Argument: current_slot is the current slot
+ 294:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Return: uint16_t number of slots until the next wakeup
+ 295:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+ 296:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** uint16_t rtl_get_slots_until_next_wakeup (uint16_t current_slot)
+ 297:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 814               	.LM73:
+ 815               	.LFBB10:
+ 816 034e CF92      		push r12
+ 817 0350 DF92      		push r13
+ 818 0352 EF92      		push r14
+ 819 0354 FF92      		push r15
+ 820 0356 0F93      		push r16
+ 821 0358 1F93      		push r17
+ 822 035a CF93      		push r28
+ 823 035c DF93      		push r29
+ 824               	/* prologue: function */
+ 825               	/* frame size = 0 */
+ 826 035e 6C01      		movw r12,r24
+ 828               	.LM74:
+ 829 0360 00E0      		ldi r16,lo8(rtl_sched_cache)
+ 830 0362 10E0      		ldi r17,hi8(rtl_sched_cache)
+ 831 0364 C0E0      		ldi r28,lo8(0)
+ 832 0366 D0E0      		ldi r29,hi8(0)
+ 833 0368 51E0      		ldi r21,lo8(1025)
+ 834 036a E52E      		mov r14,r21
+ 835 036c 54E0      		ldi r21,hi8(1025)
+ 836 036e F52E      		mov r15,r21
+ 837               	.L67:
+ 838               	.LBB7:
+ 298:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint16_t abs_slot;
+ 299:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint16_t min_slot;
+ 300:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t test_slot;
+ 301:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t test_frame;
+ 302:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t frame_inc;
+ 303:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 304:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** //total_slot = (((uint16_t)current_frame)<<5) + current_slot; 
+ 305:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     min_slot = MAX_SLOTS + 1;
+ 306:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     for (test_slot = 0; test_slot < 32; test_slot++) {
+ 307:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         uint8_t s;
+ 308:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         s = rtl_get_schedule (test_slot);
+ 840               	.LM75:
+ 841 0370 8C2F      		mov r24,r28
+ 842 0372 0E94 0000 		call rtl_get_schedule
+ 309:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         if (s == 0)
+ 844               	.LM76:
+ 845 0376 8823      		tst r24
+ 846 0378 01F0      		breq .L59
+ 310:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****             continue;
+ 311:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         s--;
+ 848               	.LM77:
+ 849 037a 8150      		subi r24,lo8(-(-1))
+ 312:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         //test_frame=0;   
+ 313:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         test_frame = rtl_sched_cache[test_slot];
+ 851               	.LM78:
+ 852 037c F801      		movw r30,r16
+ 853 037e 2081      		ld r18,Z
+ 854               	.LBB8:
+ 855               	.LBB9:
+ 314:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         frame_inc = _rtl_pow (2, s);
+ 315:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         do {
+ 316:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****             abs_slot = (((uint16_t) test_frame) << 5) + test_slot;
+ 317:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****             if (abs_slot <= current_slot)
+ 318:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****                 test_frame += frame_inc;
+ 319:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****             //printf_u( "." );
+ 320:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         } while (abs_slot <= current_slot);
+ 321:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         rtl_sched_cache[test_slot] = test_frame;
+ 322:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****          //printf( "current_slot = %d,  test_slot = %d, abs_slot=%d\n",current_slot, test_slot, abs
+ 323:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         if (abs_slot - current_slot < min_slot && abs_slot < MAX_SLOTS + 1)
+ 324:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****             min_slot = abs_slot - current_slot;
+ 325:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     }
+ 326:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** // If next slot is in the next TDMA cycle, return 0 to wakeup at the start if the frame.
+ 327:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (min_slot > MAX_SLOTS)
+ 328:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         return 0;
+ 329:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     return min_slot;
+ 330:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 331:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** 
+ 332:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** /**
+ 333:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * _rtl_pow()
+ 334:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 335:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * This is a little helper function to do powers in order to 
+ 336:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * resolve the schedules.  This is all 8 bit and should not
+ 337:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * be forced to overflow.
+ 338:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  *
+ 339:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Arguments: x and y to compute x^y
+ 340:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  * Return: x^y
+ 341:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****  */
+ 342:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** uint8_t _rtl_pow (uint8_t x, uint8_t y)
+ 343:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** {
+ 344:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     uint8_t acc, i;
+ 345:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     if (y == 0)
+ 857               	.LM79:
+ 858 0380 8823      		tst r24
+ 859 0382 01F4      		brne .L60
+ 860 0384 31E0      		ldi r19,lo8(1)
+ 861 0386 00C0      		rjmp .L70
+ 862               	.L60:
+ 863 0388 40E0      		ldi r20,lo8(0)
+ 864 038a 32E0      		ldi r19,lo8(2)
+ 346:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         return 1;
+ 347:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     acc = x;
+ 348:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     for (i = 0; i < y - 1; i++)
+ 866               	.LM80:
+ 867 038c 90E0      		ldi r25,lo8(0)
+ 868 038e 0197      		sbiw r24,1
+ 869 0390 00C0      		rjmp .L62
+ 870               	.L63:
+ 349:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****         acc = acc * x;
+ 872               	.LM81:
+ 873 0392 330F      		lsl r19
+ 875               	.LM82:
+ 876 0394 4F5F      		subi r20,lo8(-(1))
+ 877               	.L62:
+ 878 0396 642F      		mov r22,r20
+ 879 0398 70E0      		ldi r23,lo8(0)
+ 880 039a 6817      		cp r22,r24
+ 881 039c 7907      		cpc r23,r25
+ 882 039e 04F0      		brlt .L63
+ 883               	.L70:
+ 884               	.LBE9:
+ 885               	.LBE8:
+ 887               	.LM83:
+ 888 03a0 822F      		mov r24,r18
+ 889 03a2 90E0      		ldi r25,lo8(0)
+ 890 03a4 45E0      		ldi r20,5
+ 891 03a6 880F      	1:	lsl r24
+ 892 03a8 991F      		rol r25
+ 893 03aa 4A95      		dec r20
+ 894 03ac 01F4      		brne 1b
+ 895 03ae 8C0F      		add r24,r28
+ 896 03b0 9D1F      		adc r25,r29
+ 898               	.LM84:
+ 899 03b2 C816      		cp r12,r24
+ 900 03b4 D906      		cpc r13,r25
+ 901 03b6 00F0      		brlo .L64
+ 903               	.LM85:
+ 904 03b8 230F      		add r18,r19
+ 905 03ba 00C0      		rjmp .L70
+ 906               	.L64:
+ 908               	.LM86:
+ 909 03bc F801      		movw r30,r16
+ 910 03be 2083      		st Z,r18
+ 912               	.LM87:
+ 913 03c0 9C01      		movw r18,r24
+ 914 03c2 2C19      		sub r18,r12
+ 915 03c4 3D09      		sbc r19,r13
+ 916 03c6 2E15      		cp r18,r14
+ 917 03c8 3F05      		cpc r19,r15
+ 918 03ca 00F4      		brsh .L59
+ 919 03cc F4E0      		ldi r31,hi8(1025)
+ 920 03ce 8130      		cpi r24,lo8(1025)
+ 921 03d0 9F07      		cpc r25,r31
+ 922 03d2 00F0      		brlo .L65
+ 923               	.L59:
+ 924 03d4 9701      		movw r18,r14
+ 925               	.L65:
+ 926 03d6 2196      		adiw r28,1
+ 927 03d8 0F5F      		subi r16,lo8(-(1))
+ 928 03da 1F4F      		sbci r17,hi8(-(1))
+ 929               	.LBE7:
+ 931               	.LM88:
+ 932 03dc C032      		cpi r28,32
+ 933 03de D105      		cpc r29,__zero_reg__
+ 934 03e0 01F0      		breq .L66
+ 935 03e2 7901      		movw r14,r18
+ 936 03e4 00C0      		rjmp .L67
+ 937               	.L66:
+ 939               	.LM89:
+ 940 03e6 44E0      		ldi r20,hi8(1025)
+ 941 03e8 2130      		cpi r18,lo8(1025)
+ 942 03ea 3407      		cpc r19,r20
+ 943 03ec 01F4      		brne .L68
+ 944 03ee 20E0      		ldi r18,lo8(0)
+ 945 03f0 30E0      		ldi r19,hi8(0)
+ 946               	.L68:
+ 948               	.LM90:
+ 949 03f2 C901      		movw r24,r18
+ 950               	/* epilogue start */
+ 951 03f4 DF91      		pop r29
+ 952 03f6 CF91      		pop r28
+ 953 03f8 1F91      		pop r17
+ 954 03fa 0F91      		pop r16
+ 955 03fc FF90      		pop r15
+ 956 03fe EF90      		pop r14
+ 957 0400 DF90      		pop r13
+ 958 0402 CF90      		pop r12
+ 959 0404 0895      		ret
+ 970               	.Lscope10:
+ 972               		.stabd	78,0,0
+ 976               	.global	_rtl_pow
+ 978               	_rtl_pow:
+ 979               		.stabd	46,0,0
+ 981               	.LM91:
+ 982               	.LFBB11:
+ 983               	/* prologue: function */
+ 984               	/* frame size = 0 */
+ 986               	.LM92:
+ 987 0406 6623      		tst r22
+ 988 0408 01F4      		brne .L72
+ 989 040a 91E0      		ldi r25,lo8(1)
+ 990 040c 00C0      		rjmp .L73
+ 991               	.L72:
+ 992 040e 982F      		mov r25,r24
+ 993 0410 20E0      		ldi r18,lo8(0)
+ 995               	.LM93:
+ 996 0412 70E0      		ldi r23,lo8(0)
+ 997 0414 6150      		subi r22,lo8(-(-1))
+ 998 0416 7040      		sbci r23,hi8(-(-1))
+ 999 0418 00C0      		rjmp .L74
+ 1000               	.L75:
+ 1002               	.LM94:
+ 1003 041a 989F      		mul r25,r24
+ 1004 041c 902D      		mov r25,r0
+ 1005 041e 1124      		clr r1
+ 1007               	.LM95:
+ 1008 0420 2F5F      		subi r18,lo8(-(1))
+ 1009               	.L74:
+ 1010 0422 422F      		mov r20,r18
+ 1011 0424 50E0      		ldi r21,lo8(0)
+ 1012 0426 4617      		cp r20,r22
+ 1013 0428 5707      		cpc r21,r23
+ 1014 042a 04F0      		brlt .L75
+ 1015               	.L73:
+ 350:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c ****     return acc;
+ 351:../../../../nano-RK/src/net/rt_link/rtl_scheduler.c **** }
+ 1017               	.LM96:
+ 1018 042c 892F      		mov r24,r25
+ 1019               	/* epilogue start */
+ 1020 042e 0895      		ret
+ 1026               	.Lscope11:
+ 1028               		.stabd	78,0,0
+ 1029               		.comm _nrk_signal_list,4,1
+ 1030               		.comm nrk_idle_task_stk,128,1
+ 1031               		.comm nrk_kernel_stk_ptr,2,1
+ 1032               		.comm rtl_task,35,1
+ 1033               		.comm rtl_task_stack,128,1
+ 1034               		.comm rtl_node_mode,1,1
+ 1035               		.comm last_slot,2,1
+ 1036               		.comm last_slot_time,8,1
+ 1037               		.comm _rtl_sync_ok,1,1
+ 1038               		.comm _rtl_ready,1,1
+ 1039               		.comm _rtl_time_token,1,1
+ 1040               		.comm _rtl_time_token_status,1,1
+ 1041               		.comm rtl_tsync_tx,7,1
+ 1042               		.comm rtl_tsync_buf,3,1
+ 1043               		.comm _rtl_contention_pending,1,1
+ 1044               		.comm _rtl_contention_slots,1,1
+ 1045               		.comm rtl_rfRxInfo,9,1
+ 1046               		.comm rtl_rx_data_ready,1,1
+ 1047               		.comm rtl_rx_slot,1,1
+ 1048               		.comm rtl_rx_buf,116,1
+ 1049               		.comm rtl_rfTxInfo,7,1
+ 1050               		.comm rtl_tx_info,99,1
+ 1051               		.comm rtl_abs_tx_slot,2,1
+ 1052               		.comm rtl_abs_tx_ready,1,1
+ 1053               		.comm rtl_tx_data_ready,4,1
+ 1054               		.comm rtl_param,9,1
+ 1055               		.comm rtl_tdma_rx_mask,4,1
+ 1056               		.comm rtl_tdma_tx_mask,4,1
+ 1057               		.comm rx_callback,2,1
+ 1058               		.comm tx_callback,2,1
+ 1059               		.comm abs_callback,2,1
+ 1060               		.comm slot_callback,2,1
+ 1061               		.comm cycle_callback,2,1
+ 1062               		.comm rtl_sched,16,1
+ 1063               		.comm rtl_sched_cache,32,1
+ 1064               		.comm rtl_abs_wakeup,8,1
+ 1065               		.comm error_task,1,1
+ 1066               		.comm error_num,1,1
+ 1106               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 rtl_scheduler.c
+     /tmp/ccSJQfUh.s:2      *ABS*:0000003f __SREG__
+     /tmp/ccSJQfUh.s:3      *ABS*:0000003e __SP_H__
+     /tmp/ccSJQfUh.s:4      *ABS*:0000003d __SP_L__
+     /tmp/ccSJQfUh.s:5      *ABS*:00000000 __tmp_reg__
+     /tmp/ccSJQfUh.s:6      *ABS*:00000001 __zero_reg__
+     /tmp/ccSJQfUh.s:138    .text:00000000 rtl_set_schedule
+                            *COM*:00000004 rtl_tdma_rx_mask
+                            *COM*:00000004 rtl_tdma_tx_mask
+                            *COM*:00000010 rtl_sched
+     /tmp/ccSJQfUh.s:264    .text:000000c0 rtl_get_schedule
+     /tmp/ccSJQfUh.s:319    .text:000000ec rtl_clr_schedule
+     /tmp/ccSJQfUh.s:427    .text:0000018c _rtl_clr_abs_all_wakeup
+                            *COM*:00000008 rtl_abs_wakeup
+     /tmp/ccSJQfUh.s:459    .text:000001b2 rtl_set_abs_wakeup
+     /tmp/ccSJQfUh.s:550    .text:00000232 _rtl_clr_abs_wakeup
+     /tmp/ccSJQfUh.s:627    .text:0000029c _rtl_match_abs_wakeup
+     /tmp/ccSJQfUh.s:707    .text:000002fc _rtl_get_next_abs_wakeup
+     /tmp/ccSJQfUh.s:778    .text:0000033e _rtl_clear_sched_cache
+                            *COM*:00000020 rtl_sched_cache
+     /tmp/ccSJQfUh.s:811    .text:0000034e rtl_get_slots_until_next_wakeup
+     /tmp/ccSJQfUh.s:978    .text:00000406 _rtl_pow
+                            *COM*:00000004 _nrk_signal_list
+                            *COM*:00000080 nrk_idle_task_stk
+                            *COM*:00000002 nrk_kernel_stk_ptr
+                            *COM*:00000023 rtl_task
+                            *COM*:00000080 rtl_task_stack
+                            *COM*:00000001 rtl_node_mode
+                            *COM*:00000002 last_slot
+                            *COM*:00000008 last_slot_time
+                            *COM*:00000001 _rtl_sync_ok
+                            *COM*:00000001 _rtl_ready
+                            *COM*:00000001 _rtl_time_token
+                            *COM*:00000001 _rtl_time_token_status
+                            *COM*:00000007 rtl_tsync_tx
+                            *COM*:00000003 rtl_tsync_buf
+                            *COM*:00000001 _rtl_contention_pending
+                            *COM*:00000001 _rtl_contention_slots
+                            *COM*:00000009 rtl_rfRxInfo
+                            *COM*:00000001 rtl_rx_data_ready
+                            *COM*:00000001 rtl_rx_slot
+                            *COM*:00000074 rtl_rx_buf
+                            *COM*:00000007 rtl_rfTxInfo
+                            *COM*:00000063 rtl_tx_info
+                            *COM*:00000002 rtl_abs_tx_slot
+                            *COM*:00000001 rtl_abs_tx_ready
+                            *COM*:00000004 rtl_tx_data_ready
+                            *COM*:00000009 rtl_param
+                            *COM*:00000002 rx_callback
+                            *COM*:00000002 tx_callback
+                            *COM*:00000002 abs_callback
+                            *COM*:00000002 slot_callback
+                            *COM*:00000002 cycle_callback
+                            *COM*:00000001 error_task
+                            *COM*:00000001 error_num
+
+UNDEFINED SYMBOLS
+__do_copy_data
+__do_clear_bss
