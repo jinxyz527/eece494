@@ -8,7 +8,7 @@
 #include <nrk_error.h>
 
 // Only require MAC address for address decode 
-#define GATEWAY     1
+#define GATEWAY     0
 
 #if GATEWAY
 nrk_task_type RX_TASK;
@@ -64,7 +64,7 @@ void rx_task ()
         if (ret == NRK_OK) {
             nrk_led_set(GREEN_LED); 
             local_rx_buf = bmac_rx_pkt_get(&len,&rssi);
-            printf( "rx_task: pkt len=%d rssi=%d [",len,rssi );
+            printf( "rx_task: rssi=%d [",rssi );
             for(i=0; i<len; i++ ) {
                 printf( "%c", local_rx_buf[i]);
             }
