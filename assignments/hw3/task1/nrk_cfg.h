@@ -14,13 +14,12 @@
 #define IGNORE_BROWN_OUT_ERROR
 #define IGNORE_EXT_RST_ERROR
 
-#define NRK_MAX_TASKS                   4
+#define NRK_MAX_TASKS                   5
                            
+#define NRK_MAX_RESOURCE_CNT            5
 
 #define NRK_TASK_IDLE_STK_SIZE          128   // Idle task stack size min=32 
-#define NRK_APP_STACKSIZE               128 
+#define NRK_APP_STACKSIZE               256 
 #define NRK_KERNEL_STACKSIZE            128 
-
-#define NRK_MAX_RESOURCE_CNT            0
 
 #endif
