@@ -1,11 +1,11 @@
 # Platform name  cc2420DK, firefly, micaZ, firefly2, firefly2_2
-PLATFORM = micaZ
+PLATFORM = firefly2_3
 
 # Target file name (without extension).
 TARGET = main
 
 # Set the Port that you programmer is connected to 
-PROGRAMMING_PORT = /dev/ttyUSB0  # Default micaZ serial port 
+PROGRAMMING_PORT = /dev/ttyUSB1  # Default micaZ serial port 
 
 # Set this such that the nano-RK directory is the base path
 ROOT_DIR = ../../../nano-RK
