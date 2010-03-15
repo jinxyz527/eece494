@@ -8,7 +8,7 @@ dir = "indoors"
 packet_start = 1
 packet_total = 25
 
-for file in os.listdir(dir):
+for file in sorted(os.listdir(dir)):
     num_packets = 0
     rssi_total = 0
     for line in open(dir + "/" + file, "r"):
