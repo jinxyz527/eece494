@@ -1,14 +1,16 @@
 #!/usr/bin/python
 """
-EDF Simulator
+Earliest Deadline First (EDF) Simulator
 
 Usage:
-    ./edf_sim.py [options] <Task Execution Time, Task Period> ...
+    ./edf_sim.py [options] -m <Number of Clock Cycles> <Task Execution Time, Task Period> ...
 
 Options:
     -h, --help
             Displays this help and exists
 """
+
+MAX_TICKS = 25
 
 class Task:
     totalTasks = 0
@@ -37,23 +39,24 @@ class Task:
         return "Task %d: (%d, %d, %d)" % (self.taskId, self.execTime, self.period, self.abs_deadline)
 
 class Edf:
-    curTick = 0
-
     def __init__(self, taskList):
+        self.curTick = 0
         self.taskList = taskList
 
     def start(self):
-        while Edf.curTick < 24:
+        while self.curTick < MAX_TICKS:
             curTask = self._nextTask()
             if curTask is None:
-                Edf.curTick += 1
-                continue
+                self._tick(1)
+            else:
+                print "%d \t %s" % (self.curTick, curTask)
+                self._tick(curTask.execTime)
+                curTask.increaseDeadline(self.curTick)
 
-            print "%d : %s" % (Edf.curTick, curTask)
-            for task in self.taskList:
-                task.tick(curTask.execTime)
-            Edf.curTick += curTask.execTime
-            curTask.increaseDeadline(Edf.curTick)
+    def _tick(self, numTicks):
+        for task in self.taskList:
+            task.tick(numTicks)
+        self.curTick += numTicks
 
     def _nextTask(self):
         edTask = None
