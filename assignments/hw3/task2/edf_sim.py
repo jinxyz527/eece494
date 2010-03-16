@@ -7,7 +7,7 @@ Usage:
 
 Options:
     -h, --help
-            Displays this help and exists
+            Displays this help and exits
 """
 
 MAX_TICKS = 25
