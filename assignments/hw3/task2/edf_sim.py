@@ -23,7 +23,12 @@ class Task:
         self.ready = 0
 
     def increaseDeadline(self, curTick):
-        self.abs_deadline += self.period
+        abs1 = self.abs_deadline + self.period
+        abs2 = curTick + self.period
+        if abs1 > abs2:
+            self.abs_deadline = abs1
+        else:
+            self.abs_deadline = abs2
         self.ready = self.period - (curTick % self.period)
 
     def tick(self, numTicks):
@@ -40,7 +45,7 @@ class Task:
 
 class Edf:
     def __init__(self, taskList):
-        self.curTick = 0
+        self.curTick = 1
         self.taskList = taskList
 
     def start(self):
