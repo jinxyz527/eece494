@@ -3,7 +3,7 @@
 Earliest Deadline First (EDF) Simulator
 
 Usage:
-    ./edf_sim.py [options] -m <Number of Clock Cycles> <Task Execution Time, Task Period> ...
+    ./edf_sim.py [options] <Task Execution Time, Task Period> ...
 
 Options:
     -h, --help
