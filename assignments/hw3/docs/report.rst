@@ -17,7 +17,7 @@ Group Number:
 Authors:
     | Jason Poon (21736053)
     | Malihsa Haddidi (25043050)
-    | Neeraj Prasher
+    | Neeraj Prasher (23389059)
     | Regina So (62104047)
 
 .. raw:: pdf
@@ -34,10 +34,10 @@ Task 0B: Develop a Project Plan
 
 Task Distribution
 -----------------
-* Jason - Task 1, overhead (report, submitting assignment)
+* Jason - Task 1, Task 2 (test cases), overhead (report, submitting assignment)
 * Neeraj - Task 2 (implement EDF)
-* Regina - Task 2 (test cases), Task 4
 * Malihsa - Task 3
+* Regina - Task 4
 
 Team Deadlines
 --------------
@@ -74,7 +74,6 @@ The client is then moved in increasing increments of 1m and the test is repeated
 
 At each distance measured, the average RSSI and packet loss rate is calculated from the data gathered.
 Although these calculations may have been performed on the node themselves, in order to ensure that no packets are lost due to buffer issues or the calculation task pre-empting the communication task, the calculation of the packet loss is instead done in a Python script (calcPktLoss.py).
-
 
 Task 2: Earliest Deadline First
 ===============================
