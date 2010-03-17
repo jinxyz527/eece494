@@ -34,10 +34,10 @@ Task 0B: Develop a Project Plan
 
 Task Distribution
 -----------------
-* Jason - Task 1, Task 2 (test cases), overhead (report, submitting assignment)
+* Jason - Task 1, overhead (report, submitting assignment)
 * Neeraj - Task 2 (implement EDF)
 * Malihsa - Task 3
-* Regina - Task 4
+* Regina - Task 2 (test cases), Task 4
 
 Team Deadlines
 --------------
