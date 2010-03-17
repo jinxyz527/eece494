@@ -75,6 +75,16 @@ The client is then moved in increasing increments of 1m and the test is repeated
 At each distance measured, the average RSSI and packet loss rate is calculated from the data gathered.
 Although these calculations may have been performed on the node themselves, in order to ensure that no packets are lost due to buffer issues or the calculation task pre-empting the communication task, the calculation of the packet loss is instead done in a Python script (calcPktLoss.py).
 
+.. figure:: imgs/corridor.jpg
+   :alt: Wireless Channel Reliability -- Corridor
+   :align: center
+   :width: 75%
+
+.. figure:: imgs/room.jpg
+   :alt: Wireless Channel Reliability -- Room 
+   :align: center
+   :width: 75%
+
 Task 2: Earliest Deadline First
 ===============================
 
