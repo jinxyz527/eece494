@@ -77,13 +77,20 @@ Although these calculations may have been performed on the node themselves, in o
 
 .. figure:: imgs/corridor.jpg
    :alt: Wireless Channel Reliability -- Corridor
-   :align: center
-   :width: 75%
+   :scale: 70%
+
+   The reliability of the wireless channel was measured in a corridor of 4th floor Kaiser. 
+   Being a corridor, the test area was approximiately 53m long and 2m wide.
+   As the distance increased, the RSSI valued and average packet loss rate generally increased as well.
+
 
 .. figure:: imgs/room.jpg
    :alt: Wireless Channel Reliability -- Room 
-   :align: center
-   :width: 75%
+   :scale: 70%
+
+   Measurements were taken in the living room in which the area is very spacious with high ceilings.
+   As shown by the above figure, the RSSI starts as a positive number and decreases as the distance increases.
+   Packet loss also increases with distance.
 
 Task 2: Earliest Deadline First
 ===============================
