@@ -77,19 +77,27 @@ Although these calculations could have been performed on the node themselves, in
 
 The RSSI and average packet loss rate was measured at two different locations: hallway of the Kaiser building and the living room of a house.
 
-.. figure:: imgs/corridor.jpg
-   :alt: Wireless Channel Reliability -- Corridor
-   :scale: 70%
+All data was retreived on Firefly v2.3.
 
-   The reliability of the wireless channel was measured in a corridor of 4th floor Kaiser. 
-   With the corridor, the maximum distance that the nodes were able to communicate was approximately *55m*, but at that point, packet loss was in the high 90%.
-
-    
-.. figure:: imgs/room.jpg
+.. figure:: imgs/livingroom.jpg
    :alt: Wireless Channel Reliability -- Room 
-   :scale: 70%
+   :width: 85%
 
    Measurements were taken in the living room of a home.
+
+.. figure:: imgs/kaiser.jpg
+   :alt: Wireless Channel Reliability -- Corridor
+   :width: 85%
+
+   The reliability of the wireless channel was measured in a corridor of 4th floor Kaiser. 
+   The maximum distance for communication between the nodes is roughly 55m, but at that point, packet loss was in the high 90%.
+
+ 
+.. figure:: imgs/packetLoss_rssi.jpg
+   :alt: Packet Loss vs. Average RSSI
+   :width: 85%
+
+   As the average RSSI increases, packet loss increases.
 
 
 As the figures above show, When placed in close proximity of each other, the RSSI values is a positive number where the value of the RSSI decreases with an increase in distance between the nodes.
@@ -98,7 +106,6 @@ As the distance increased, the average packet loss rate increased as well.
 Other environmental factors can also affect the average packet loss.
 An example is that objects situated between the motes can interfere with the radio signal potentially causing packet loss.
 
-All data was retreived on Firefly v2.3.
 
 Task 2: Earliest Deadline First
 ===============================
